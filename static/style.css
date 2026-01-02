@@ -249,3 +249,268 @@ header h1 {
     }
 }
 
+/* Aggregation and Clinical Display Styles */
+
+.info-box {
+    background: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    color: #1565c0;
+}
+
+.info-box strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.info-box p {
+    margin: 0;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.batch-info {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 0.95em;
+    color: #555;
+}
+
+.batch-warning {
+    display: block;
+    color: #ff9800;
+    margin-top: 8px;
+}
+
+.aggregation-progress {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.aggregation-progress h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.aggregation-progress p {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 30px;
+    background: #e0e0e0;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.aggregation-results {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.aggregation-results h3 {
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.3em;
+}
+
+.clinical-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.clinical-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border-top: 4px solid #667eea;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.clinical-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clinical-card.highlight {
+    border-top: 4px solid #ff6b6b;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+}
+
+.clinical-card .label {
+    font-size: 0.85em;
+    color: #999;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.clinical-card .value {
+    font-size: 2.2em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.clinical-card.highlight .value {
+    color: #ff6b6b;
+}
+
+.clinical-interpretation {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #4CAF50;
+}
+
+.clinical-interpretation h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.status-badge.normal {
+    background: #d4edda;
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+.status-badge.mild {
+    background: #fff3cd;
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.status-badge.moderate {
+    background: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.status-badge.severe {
+    background: #f5c6cb;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.status-badge span {
+    display: block;
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+
+.risk-assessment-header {
+    margin-bottom: 15px;
+}
+
+.risk-badge {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+}
+
+.risk-badge.normal {
+    background: #28a745;
+    color: white;
+    border: 2px solid #1e7e34;
+}
+
+.risk-badge.mild {
+    background: #ffc107;
+    color: #333;
+    border: 2px solid #e0a800;
+}
+
+.risk-badge.moderate {
+    background: #fd7e14;
+    color: white;
+    border: 2px solid #dc6912;
+}
+
+.risk-badge.severe {
+    background: #dc3545;
+    color: white;
+    border: 2px solid #bb2d3b;
+    animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+}
+
+.risk-guidelines {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border-left: 4px solid #667eea;
+}
+
+.risk-guidelines h5 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1em;
+}
+
+.risk-guidelines ul {
+    list-style-position: inside;
+    color: #555;
+    line-height: 1.8;
+}
+
+.risk-guidelines li {
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+.risk-guidelines strong {
+    color: #d32f2f;
+}
+
+

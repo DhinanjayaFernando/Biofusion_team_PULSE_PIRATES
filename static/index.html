@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <h1>ML Blood Smear Detection</h1>
-            <p class="subtitle">YOLOv8-based Malaria & Blood Cell Detection</p>
+            <p class="subtitle">YOLOv8-based Malaria & Dengue Detection</p>
         </header>
 
         <!-- Disclaimer -->
@@ -28,34 +28,95 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="image-input">Upload Blood Smear Image:</label>
-                <input type="file" id="image-input" accept="image/*" class="file-input">
+            <!-- Single Image Detection Mode -->
+            <div id="single-image-section">
+                <div class="form-group">
+                    <label for="image-input">Upload Blood Smear Image:</label>
+                    <input type="file" id="image-input" accept="image/*" class="file-input">
+                </div>
+                <button id="detect-btn" class="detect-btn" disabled>Detect</button>
             </div>
 
-            <button id="detect-btn" class="detect-btn" disabled>Detect</button>
+            <!-- Batch Aggregation Mode (for Platelet) -->
+            <div id="aggregation-section" style="display: none;">
+                <div class="info-box">
+                    <strong>📊 Clinical Platelet Aggregation Protocol</strong>
+                    <p>Upload 10-20 images per sample. Results will be aggregated using the formula: Platelets/µL = (Σ detections / N) × 15,000</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="batch-images-input">Upload Multiple Images (Platelet):</label>
+                    <input type="file" id="batch-images-input" accept="image/*" multiple class="file-input">
+                    <small>Select 10-20 images from the same sample</small>
+                </div>
+                
+                <div class="batch-info">
+                    <p>Images selected: <span id="images-selected-count">0</span></p>
+                </div>
+                
+                <button id="start-aggregation-btn" class="detect-btn" disabled>Start Batch Processing</button>
+            </div>
         </div>
 
         <!-- Results Section -->
         <div id="results-section" class="results-section hidden">
             <h2>Detection Results</h2>
             
-            <!-- Images -->
-            <div class="images-container">
-                <div class="image-box">
-                    <h3>Original Image</h3>
-                    <img id="original-img" alt="Original image">
+            <!-- Single Image Results -->
+            <div id="single-results-section" style="display: none;">
+                <div class="images-container">
+                    <div class="image-box">
+                        <h3>Original Image</h3>
+                        <img id="original-img" alt="Original image">
+                    </div>
+                    <div class="image-box">
+                        <h3>Annotated Image</h3>
+                        <img id="annotated-img" alt="Annotated image">
+                    </div>
                 </div>
-                <div class="image-box">
-                    <h3>Annotated Image</h3>
-                    <img id="annotated-img" alt="Annotated image">
+
+                <div class="counts-container">
+                    <h3>Detection Counts</h3>
+                    <div id="counts-display" class="counts-display"></div>
                 </div>
             </div>
 
-            <!-- Counts -->
-            <div class="counts-container">
-                <h3>Detection Counts</h3>
-                <div id="counts-display" class="counts-display"></div>
+            <!-- Batch Aggregation Results -->
+            <div id="aggregation-results-section" style="display: none;">
+                <div class="aggregation-progress">
+                    <h3>Batch Processing Progress</h3>
+                    <p>Processing image: <span id="current-image-count">0</span> / <span id="total-images-count">0</span></p>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="aggregation-results">
+                    <h3>Aggregated Platelet Count (Clinical Protocol)</h3>
+                    <div class="clinical-cards">
+                        <div class="clinical-card">
+                            <div class="label">Total Detections (All Images)</div>
+                            <div class="value" id="total-detections">-</div>
+                        </div>
+                        <div class="clinical-card">
+                            <div class="label">Images Processed</div>
+                            <div class="value" id="images-processed-count">-</div>
+                        </div>
+                        <div class="clinical-card">
+                            <div class="label">Avg Platelets/Image</div>
+                            <div class="value" id="avg-platelets-per-image">-</div>
+                        </div>
+                        <div class="clinical-card highlight">
+                            <div class="label">📋 Platelets/µL (Final Result)</div>
+                            <div class="value" id="platelets-per-ul">-</div>
+                        </div>
+                    </div>
+
+                    <div class="clinical-interpretation">
+                        <h4>🔬 Dengue Risk Assessment</h4>
+                        <div id="clinical-status-display"></div>
+                    </div>
+                </div>
             </div>
         </div>
 

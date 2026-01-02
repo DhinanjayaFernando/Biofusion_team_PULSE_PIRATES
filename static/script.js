@@ -1,3 +1,4 @@
+// DOM Elements - Single Image Mode
 const imageInput = document.getElementById('image-input');
 const modeSelect = document.getElementById('mode-select');
 const detectBtn = document.getElementById('detect-btn');
@@ -8,7 +9,19 @@ const originalImg = document.getElementById('original-img');
 const annotatedImg = document.getElementById('annotated-img');
 const countsDisplay = document.getElementById('counts-display');
 
+// DOM Elements - Aggregation Mode
+const singleImageSection = document.getElementById('single-image-section');
+const aggregationSection = document.getElementById('aggregation-section');
+const batchImagesInput = document.getElementById('batch-images-input');
+const imagesSelectedCount = document.getElementById('images-selected-count');
+const startAggregationBtn = document.getElementById('start-aggregation-btn');
+const singleResultsSection = document.getElementById('single-results-section');
+const aggregationResultsSection = document.getElementById('aggregation-results-section');
+
+// State
 let selectedFile = null;
+let batchFiles = [];
+let currentAggregationSession = null;
 
 // Check available models on page load
 async function checkAvailableModels() {
@@ -35,7 +48,6 @@ async function checkAvailableModels() {
                 if (modelsInfo[mode] && modelsInfo[mode].available) {
                     const option = document.createElement('option');
                     option.value = mode;
-                    // Use the name from config, which matches what we want
                     option.textContent = modelsInfo[mode].name;
                     modeSelect.appendChild(option);
                 }
@@ -61,7 +73,28 @@ async function checkAvailableModels() {
 // Initialize on page load
 checkAvailableModels();
 
-// Handle file selection
+// Handle mode selection change
+modeSelect.addEventListener('change', (e) => {
+    const selectedMode = e.target.value;
+    
+    if (selectedMode === 'platelet') {
+        // Show aggregation mode for platelet
+        singleImageSection.style.display = 'none';
+        aggregationSection.style.display = 'block';
+    } else if (selectedMode === 'malaria') {
+        // Show single image mode for malaria
+        singleImageSection.style.display = 'block';
+        aggregationSection.style.display = 'none';
+    } else {
+        // No selection
+        singleImageSection.style.display = 'block';
+        aggregationSection.style.display = 'none';
+    }
+});
+
+// ============ SINGLE IMAGE MODE ============
+
+// Handle single file selection
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -81,7 +114,7 @@ imageInput.addEventListener('change', (e) => {
     }
 });
 
-// Handle detect button click
+// Handle single detect button click
 detectBtn.addEventListener('click', async () => {
     if (!selectedFile) {
         showError('Please select an image first');
@@ -119,6 +152,8 @@ detectBtn.addEventListener('click', async () => {
             displayCounts(data.counts, data.mode);
             
             // Show results
+            singleResultsSection.style.display = 'block';
+            aggregationResultsSection.style.display = 'none';
             resultsSection.classList.remove('hidden');
         } else {
             throw new Error('Detection failed');
@@ -131,12 +166,136 @@ detectBtn.addEventListener('click', async () => {
     }
 });
 
+// ============ BATCH AGGREGATION MODE ============
+
+// Handle batch file selection
+batchImagesInput.addEventListener('change', (e) => {
+    batchFiles = Array.from(e.target.files);
+    imagesSelectedCount.textContent = batchFiles.length;
+    
+    if (batchFiles.length > 0) {
+        startAggregationBtn.disabled = false;
+        
+        if (batchFiles.length < 10) {
+            const warning = document.createElement('small');
+            warning.style.color = '#ff9800';
+            warning.innerHTML = `⚠️ Recommended: 10-20 images for accurate aggregation (you have ${batchFiles.length})`;
+            // Remove old warning if exists
+            const oldWarning = document.querySelector('.batch-warning');
+            if (oldWarning) oldWarning.remove();
+            warning.className = 'batch-warning';
+            batchImagesInput.parentElement.appendChild(warning);
+        }
+    } else {
+        startAggregationBtn.disabled = true;
+    }
+    
+    // Hide previous results
+    resultsSection.classList.add('hidden');
+    error.classList.add('hidden');
+});
+
+// Handle batch processing
+startAggregationBtn.addEventListener('click', async () => {
+    if (batchFiles.length === 0) {
+        showError('Please select at least one image');
+        return;
+    }
+    
+    // Start aggregation session
+    try {
+        loading.classList.remove('hidden');
+        resultsSection.classList.add('hidden');
+        error.classList.add('hidden');
+        startAggregationBtn.disabled = true;
+        
+        // Create aggregation session
+        const sessionResponse = await fetch('/api/aggregation/start', {
+            method: 'POST',
+            body: new FormData(new FormData().append('mode', 'platelet'))
+        });
+        
+        if (!sessionResponse.ok) {
+            const errorData = await sessionResponse.json();
+            throw new Error(errorData.detail || 'Failed to start aggregation session');
+        }
+        
+        const sessionData = await sessionResponse.json();
+        currentAggregationSession = sessionData.session_id;
+        
+        console.log('Started aggregation session:', currentAggregationSession);
+        
+        // Upload images one by one
+        const totalImages = batchFiles.length;
+        let processedImages = 0;
+        
+        singleResultsSection.style.display = 'none';
+        aggregationResultsSection.style.display = 'block';
+        resultsSection.classList.remove('hidden');
+        
+        for (let i = 0; i < batchFiles.length; i++) {
+            const file = batchFiles[i];
+            
+            // Update progress
+            processedImages = i + 1;
+            document.getElementById('current-image-count').textContent = processedImages;
+            document.getElementById('total-images-count').textContent = totalImages;
+            document.getElementById('progress-fill').style.width = ((processedImages / totalImages) * 100) + '%';
+            
+            try {
+                const formData = new FormData();
+                formData.append('session_id', currentAggregationSession);
+                formData.append('image', file);
+                
+                const uploadResponse = await fetch('/api/aggregation/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    console.error(`Error processing image ${processedImages}:`, errorData.detail);
+                    continue;
+                }
+                
+                const uploadData = await uploadResponse.json();
+                console.log(`Processed image ${processedImages}:`, uploadData.counts);
+            } catch (err) {
+                console.error(`Error uploading image ${processedImages}:`, err);
+            }
+        }
+        
+        // Finalize aggregation
+        console.log('Finalizing aggregation...');
+        const finalizeResponse = await fetch('/api/aggregation/finalize', {
+            method: 'POST',
+            body: new FormData().append('session_id', currentAggregationSession)
+        });
+        
+        if (!finalizeResponse.ok) {
+            const errorData = await finalizeResponse.json();
+            throw new Error(errorData.detail || 'Failed to finalize aggregation');
+        }
+        
+        const finalData = await finalizeResponse.json();
+        console.log('Aggregation result:', finalData);
+        
+        // Display aggregated results
+        displayAggregationResults(finalData.aggregation, finalData.clinical_interpretation);
+        
+    } catch (err) {
+        showError(err.message || 'An error occurred during batch processing');
+    } finally {
+        loading.classList.add('hidden');
+        startAggregationBtn.disabled = batchFiles.length === 0;
+    }
+});
+
 function displayCounts(counts, mode) {
     countsDisplay.innerHTML = '';
     
     if (mode === 'malaria') {
         // Malaria model: Display total trophozoite count
-        // The model only detects trophozoite, so show total count
         const totalCount = counts.Trophozoite || counts.Total || Object.values(counts)[0] || 0;
         const card = document.createElement('div');
         card.className = 'count-card';
@@ -159,8 +318,92 @@ function displayCounts(counts, mode) {
     }
 }
 
+function displayAggregationResults(aggregation, clinicalInterpretation) {
+    // Update aggregation cards
+    document.getElementById('total-detections').textContent = aggregation.total_detections;
+    document.getElementById('images-processed-count').textContent = aggregation.images_count;
+    document.getElementById('avg-platelets-per-image').textContent = aggregation.avg_platelets_per_image.toFixed(2);
+    document.getElementById('platelets-per-ul').textContent = Number(aggregation.platelets_per_ul).toLocaleString();
+    
+    // Update clinical interpretation with risk assessment
+    const clinicalStatusDisplay = document.getElementById('clinical-status-display');
+    const severity = clinicalInterpretation.severity || 'normal';
+    
+    clinicalStatusDisplay.innerHTML = `
+        <div class="risk-assessment-header">
+            <div class="risk-badge ${severity}">
+                ${getRiskIcon(severity)} ${clinicalInterpretation.risk_level}
+            </div>
+        </div>
+        <div class="status-badge ${severity}">
+            <strong>${clinicalInterpretation.status}</strong><br>
+            <span>${clinicalInterpretation.range}</span>
+        </div>
+        <p class="interpretation-text">${clinicalInterpretation.interpretation}</p>
+        <div class="risk-guidelines">
+            <h5>📋 Clinical Guidelines</h5>
+            ${getRiskGuidelines(severity)}
+        </div>
+    `;
+}
+
+function getRiskIcon(severity) {
+    switch(severity) {
+        case 'normal': return '✅';
+        case 'mild': return '⚠️';
+        case 'moderate': return '⚠️⚠️';
+        case 'severe': return '🚨';
+        default: return '❓';
+    }
+}
+
+function getRiskGuidelines(severity) {
+    switch(severity) {
+        case 'normal':
+            return `
+                <ul>
+                    <li>No dengue-related complications expected</li>
+                    <li>Continue routine monitoring</li>
+                    <li>Standard precautions apply</li>
+                </ul>
+            `;
+        case 'mild':
+            return `
+                <ul>
+                    <li>Monitor platelet count every 24-48 hours</li>
+                    <li>Watch for warning signs: bleeding, petechiae, ecchymosis</li>
+                    <li>Ensure adequate hydration and rest</li>
+                    <li>Avoid NSAIDs and aspirin</li>
+                </ul>
+            `;
+        case 'moderate':
+            return `
+                <ul>
+                    <li><strong>Urgent:</strong> Daily platelet monitoring required</li>
+                    <li>Watch for warning signs: severe abdominal pain, persistent vomiting, bleeding</li>
+                    <li>Prepare for possible transfusion</li>
+                    <li>Close clinical observation recommended</li>
+                    <li>Avoid NSAIDs and aspirin</li>
+                </ul>
+            `;
+        case 'severe':
+            return `
+                <ul>
+                    <li><strong>CRITICAL:</strong> Immediate medical intervention required</li>
+                    <li>Continuous monitoring and frequent platelet counts</li>
+                    <li>Prepare for blood/platelet transfusion</li>
+                    <li>ICU monitoring recommended</li>
+                    <li>High risk of hemorrhagic fever and shock</li>
+                </ul>
+            `;
+        default:
+            return '<p>Unable to determine risk level</p>';
+    }
+}
+
 function showError(message) {
     error.textContent = `Error: ${message}`;
     error.classList.remove('hidden');
 }
+
 

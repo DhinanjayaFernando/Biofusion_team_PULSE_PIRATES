@@ -38,8 +38,8 @@ MODEL_CONFIGS = {
         "count_mode": "total"  # Count total trophozoites detected
     },
     "platelet": {
-        "name": "Blood Cell Detection (WBC, RBC, Platelet)",
-        "description": "Detects WBC, RBC, and Platelets in blood smear",
+        "name": "Dengue Detection (Platelet Analysis)",
+        "description": "Detects platelets in blood smear for dengue risk assessment",
         "classes": {
             0: "WBC",  # White Blood Cell (class 0)
             1: "RBC",  # Red Blood Cell (class 1)
