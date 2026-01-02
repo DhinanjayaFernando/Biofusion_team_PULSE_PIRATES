@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Blood Smear Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ML Blood Smear Detection</h1>
+            <p class="subtitle">YOLOv8-based Malaria & Blood Cell Detection</p>
+        </header>
+
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>⚠️ Important Disclaimer:</strong>
+            <p>This application is for research and educational purposes only. It is not intended for medical diagnosis or clinical use.</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="form-group">
+                <label for="mode-select">Detection Mode:</label>
+                <select id="mode-select" class="mode-select">
+                    <option value="">Loading models...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="image-input">Upload Blood Smear Image:</label>
+                <input type="file" id="image-input" accept="image/*" class="file-input">
+            </div>
+
+            <button id="detect-btn" class="detect-btn" disabled>Detect</button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="results-section hidden">
+            <h2>Detection Results</h2>
+            
+            <!-- Images -->
+            <div class="images-container">
+                <div class="image-box">
+                    <h3>Original Image</h3>
+                    <img id="original-img" alt="Original image">
+                </div>
+                <div class="image-box">
+                    <h3>Annotated Image</h3>
+                    <img id="annotated-img" alt="Annotated image">
+                </div>
+            </div>
+
+            <!-- Counts -->
+            <div class="counts-container">
+                <h3>Detection Counts</h3>
+                <div id="counts-display" class="counts-display"></div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Processing image...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="error hidden"></div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
+
