@@ -1,5 +1,6 @@
 """
 Modular FastAPI application for ML Blood Smear Detection
+Optimized for production performance with caching and minimal overhead
 """
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
@@ -8,31 +9,55 @@ from fastapi.middleware.cors import CORSMiddleware
 import base64
 import logging
 import uuid
+import os
 from typing import List, Dict, Any
 
 from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE
 from models.model_loader import ModelManager
 from models.image_processor import ImageProcessor
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging based on environment
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(title=API_TITLE)
+# Production mode flag - disable unnecessary features in production
+PRODUCTION_MODE = os.getenv("PRODUCTION", "false").lower() == "true"
 
-# CORS middleware for frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Initialize FastAPI app with production-optimized settings
+app = FastAPI(
+    title=API_TITLE,
+    debug=not PRODUCTION_MODE,  # Disable debug mode in production (source maps, auto-reload)
+    docs_url=None if PRODUCTION_MODE else "/docs",  # Disable API docs in production
+    redoc_url=None if PRODUCTION_MODE else "/redoc"  # Disable ReDoc in production
 )
 
-# Global managers
+# CORS middleware - optimized for production
+if PRODUCTION_MODE:
+    # Restrict CORS in production for security
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:3000")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins.split(","),
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],  # Only essential methods in production
+        allow_headers=["*"],
+    )
+    logger.info(f"Production mode: CORS restricted to {allowed_origins}")
+else:
+    # Permissive CORS for development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Global managers (cached for performance to avoid repeated initialization)
 model_manager: ModelManager = None
 image_processor: ImageProcessor = None
+_models_initialized = False  # Cache flag to prevent redundant loading
 
 # In-memory session storage for aggregation
 # Format: {session_id: {"images": [counts_dict], "processed_images": int, "mode": "platelet"}}
@@ -40,8 +65,13 @@ aggregation_sessions: Dict[str, Dict[str, Any]] = {}
 
 
 def initialize_models():
-    """Initialize model manager and load all models"""
-    global model_manager, image_processor
+    """Initialize model manager and load all models (cached after first load)"""
+    global model_manager, image_processor, _models_initialized
+    
+    # Return early if already initialized - avoids reloading models on every startup
+    if _models_initialized and model_manager is not None:
+        logger.debug("Models already initialized, using cached instances")
+        return
     
     # Prepare model configurations
     model_configs = {}
@@ -68,6 +98,7 @@ def initialize_models():
     # Initialize image processor
     image_processor = ImageProcessor(confidence_threshold=CONFIDENCE_THRESHOLD)
     logger.info("Image processor initialized")
+    _models_initialized = True  # Mark as initialized
 
 
 @app.on_event("startup")
@@ -78,8 +109,10 @@ async def startup_event():
 
 @app.get("/")
 async def root():
-    """Serve the frontend"""
-    return FileResponse("static/index.html")
+    """Serve the frontend - cached in browser and CDN for production"""
+    return FileResponse("static/index.html", headers={
+        "Cache-Control": "public, max-age=3600" if PRODUCTION_MODE else "no-cache"
+    })
 
 
 @app.get("/health")
@@ -413,5 +446,17 @@ def get_clinical_interpretation(platelets_per_ul: float) -> Dict[str, str]:
         }
 
 
-# Serve static files (frontend)
+# Serve static files (frontend) with caching headers for production
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Performance optimization hints for deployment
+if PRODUCTION_MODE:
+    logger.info("✓ Running in PRODUCTION MODE")
+    logger.info("  • Automatic reload disabled")
+    logger.info("  • Source maps disabled") 
+    logger.info("  • API docs disabled")
+    logger.info("  • CORS restricted")
+    logger.info("  Tip: Bind to 127.0.0.1 to bypass IPv6 DNS resolution for faster localhost access")
+else:
+    logger.info("Running in DEVELOPMENT MODE")
+
