@@ -285,9 +285,11 @@ startAggregationBtn.addEventListener('click', async () => {
                         <div class="batch-image-number">Image ${processedImages}</div>
                         <img src="${uploadData.annotated_image}" alt="Annotated image ${processedImages}" class="batch-image">
                         <div class="batch-image-counts">
-                            ${Object.entries(uploadData.counts).map(([className, count]) => 
-                                `<span>${className}: ${count}</span>`
-                            ).join('')}
+                            ${Object.entries(uploadData.counts)
+                                .filter(([className]) => className !== 'Difficult')
+                                .map(([className, count]) => 
+                                    `<span>${className}: ${count}</span>`
+                                ).join('')}
                         </div>
                     `;
                     batchImagesContainer.appendChild(imageCard);
@@ -354,8 +356,11 @@ function displayCounts(counts, mode) {
             countsDisplay.appendChild(card);
         });
     } else {
-        // Default: Display all counts
+        // Default: Display all counts (filter out "Difficult" class for malaria_multi)
         Object.entries(counts).forEach(([className, count]) => {
+            // Skip "Difficult" class in UI display
+            if (className === 'Difficult') return;
+            
             const card = document.createElement('div');
             card.className = 'count-card';
             card.innerHTML = `
