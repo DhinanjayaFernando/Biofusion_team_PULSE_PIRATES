@@ -3,8 +3,13 @@ Modular model loader for YOLOv8 models
 """
 import os
 from typing import Optional, Dict, Any
-from ultralytics import YOLO
 import logging
+
+# Import CBAM module to register it with ultralytics before loading models
+# This is required for loading models trained with CBAM attention
+from models.cbam import CBAM, register_cbam
+
+from ultralytics import YOLO
 
 logger = logging.getLogger(__name__)
 
