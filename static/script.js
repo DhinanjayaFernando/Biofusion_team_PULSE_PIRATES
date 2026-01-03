@@ -138,8 +138,12 @@ detectBtn.addEventListener('click', async () => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Detection failed');
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Detection failed');
+            } catch (parseErr) {
+                throw new Error(`Detection failed (HTTP ${response.status})`);
+            }
         }
 
         const data = await response.json();
@@ -210,14 +214,20 @@ startAggregationBtn.addEventListener('click', async () => {
         startAggregationBtn.disabled = true;
         
         // Create aggregation session
+        const sessionFormData = new FormData();
+        sessionFormData.append('mode', 'platelet');
         const sessionResponse = await fetch('/api/aggregation/start', {
             method: 'POST',
-            body: new FormData(new FormData().append('mode', 'platelet'))
+            body: sessionFormData
         });
         
         if (!sessionResponse.ok) {
-            const errorData = await sessionResponse.json();
-            throw new Error(errorData.detail || 'Failed to start aggregation session');
+            try {
+                const errorData = await sessionResponse.json();
+                throw new Error(errorData.detail || 'Failed to start aggregation session');
+            } catch (parseErr) {
+                throw new Error(`Failed to start aggregation session (HTTP ${sessionResponse.status})`);
+            }
         }
         
         const sessionData = await sessionResponse.json();
@@ -253,8 +263,12 @@ startAggregationBtn.addEventListener('click', async () => {
                 });
                 
                 if (!uploadResponse.ok) {
-                    const errorData = await uploadResponse.json();
-                    console.error(`Error processing image ${processedImages}:`, errorData.detail);
+                    try {
+                        const errorData = await uploadResponse.json();
+                        console.error(`Error processing image ${processedImages}:`, errorData.detail);
+                    } catch (parseErr) {
+                        console.error(`Error processing image ${processedImages}: HTTP ${uploadResponse.status}`);
+                    }
                     continue;
                 }
                 
@@ -267,14 +281,20 @@ startAggregationBtn.addEventListener('click', async () => {
         
         // Finalize aggregation
         console.log('Finalizing aggregation...');
+        const finalizeFormData = new FormData();
+        finalizeFormData.append('session_id', currentAggregationSession);
         const finalizeResponse = await fetch('/api/aggregation/finalize', {
             method: 'POST',
-            body: new FormData().append('session_id', currentAggregationSession)
+            body: finalizeFormData
         });
         
         if (!finalizeResponse.ok) {
-            const errorData = await finalizeResponse.json();
-            throw new Error(errorData.detail || 'Failed to finalize aggregation');
+            try {
+                const errorData = await finalizeResponse.json();
+                throw new Error(errorData.detail || 'Failed to finalize aggregation');
+            } catch (parseErr) {
+                throw new Error(`Failed to finalize aggregation (HTTP ${finalizeResponse.status})`);
+            }
         }
         
         const finalData = await finalizeResponse.json();
@@ -402,6 +422,10 @@ function getRiskGuidelines(severity) {
 }
 
 function showError(message) {
+    // Handle error objects
+    if (typeof message === 'object') {
+        message = message.message || message.detail || JSON.stringify(message);
+    }
     error.textContent = `Error: ${message}`;
     error.classList.remove('hidden');
 }

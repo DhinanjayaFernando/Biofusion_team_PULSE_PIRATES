@@ -159,6 +159,9 @@ async def detect(
     # Read image bytes
     image_bytes = await image.read()
     
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="No image data provided")
+    
     try:
         # Process image using modular processor
         annotated_img_bytes, counts = image_processor.process_detection(
@@ -169,7 +172,7 @@ async def detect(
         )
         
         if annotated_img_bytes is None:
-            raise HTTPException(status_code=500, detail="Failed to process image")
+            raise HTTPException(status_code=400, detail="Failed to decode or process image. Please ensure the image file is valid and in a supported format (JPEG, PNG, BMP, etc.)")
         
         # Convert annotated image to base64
         annotated_img_base64 = base64.b64encode(annotated_img_bytes.read()).decode('utf-8')

@@ -35,8 +35,25 @@ class ImageProcessor:
             Decoded image as numpy array or None if failed
         """
         try:
+            # Try cv2.imdecode first (faster for most formats)
             nparr = np.frombuffer(image_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            # If cv2 failed (returns None), try PIL as fallback
+            if img is None:
+                logger.warning("cv2.imdecode failed, trying PIL fallback")
+                try:
+                    pil_img = Image.open(io.BytesIO(image_bytes))
+                    # Convert RGBA to RGB if necessary
+                    if pil_img.mode in ('RGBA', 'LA', 'P'):
+                        pil_img = pil_img.convert('RGB')
+                    # Convert PIL Image to OpenCV format (BGR)
+                    img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                    logger.info("Successfully decoded image using PIL fallback")
+                except Exception as pil_error:
+                    logger.error(f"PIL fallback also failed: {str(pil_error)}")
+                    return None
+            
             return img
         except Exception as e:
             logger.error(f"Failed to decode image: {str(e)}")
