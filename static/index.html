@@ -3,80 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ML Blood Smear Detection</title>
+    <title>Blood Smear Analysis System</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>ML Blood Smear Detection</h1>
-            <p class="subtitle">YOLOv8-based Malaria & Dengue Detection</p>
+            <div class="header-content">
+                <h1>Blood Smear Analysis System</h1>
+                <p class="subtitle">Advanced Image Processing for Parasitic and Cell Detection</p>
+            </div>
         </header>
 
         <!-- Disclaimer -->
         <div class="disclaimer">
-            <strong>⚠️ Important Disclaimer:</strong>
-            <p>This application is for research and educational purposes only. It is not intended for medical diagnosis or clinical use.</p>
+            <div class="disclaimer-icon">!</div>
+            <div class="disclaimer-content">
+                <strong>Important Disclaimer</strong>
+                <p>This application is for research and educational purposes only. Results should not be used for medical diagnosis or clinical decisions without professional medical review.</p>
+            </div>
         </div>
 
         <!-- Upload Section -->
         <div class="upload-section">
+            <div class="section-header">
+                <h2>Analysis Configuration</h2>
+                <p>Select analysis type and upload microscopy images</p>
+            </div>
+
             <div class="form-group">
-                <label for="mode-select">Detection Mode:</label>
+                <label for="mode-select">Analysis Type:</label>
                 <select id="mode-select" class="mode-select">
-                    <option value="">Loading models...</option>
+                    <option value="">Loading analysis modes...</option>
                 </select>
             </div>
 
             <!-- Single Image Detection Mode -->
             <div id="single-image-section">
                 <div class="form-group">
-                    <label for="image-input">Upload Blood Smear Image:</label>
+                    <label for="image-input">Upload Microscopy Image:</label>
                     <input type="file" id="image-input" accept="image/*" class="file-input">
+                    <small class="help-text">JPEG, PNG, or BMP format</small>
                 </div>
-                <button id="detect-btn" class="detect-btn" disabled>Detect</button>
+                <button id="detect-btn" class="detect-btn" disabled>Analyze Image</button>
             </div>
 
             <!-- Batch Aggregation Mode (for Platelet) -->
             <div id="aggregation-section" style="display: none;">
                 <div class="info-box">
-                    <strong>📊 Clinical Platelet Aggregation Protocol</strong>
-                    <p>Upload 10-20 images per sample. Results will be aggregated using the formula: Platelets/µL = (Σ detections / N) × 15,000</p>
+                    <div class="info-box-header">Multi-Image Aggregation Protocol</div>
+                    <p>Upload 10-20 images per sample for statistical aggregation and clinical calculation. Results are computed using validated clinical conversion factors.</p>
                 </div>
                 
                 <div class="form-group">
-                    <label for="batch-images-input">Upload Multiple Images (Platelet):</label>
+                    <label for="batch-images-input">Upload Multiple Images:</label>
                     <input type="file" id="batch-images-input" accept="image/*" multiple class="file-input">
-                    <small>Select 10-20 images from the same sample</small>
+                    <small class="help-text">Select 10-20 images from the same sample for statistical analysis</small>
                 </div>
                 
                 <div class="batch-info">
-                    <p>Images selected: <span id="images-selected-count">0</span></p>
+                    <p>Selected Images: <span id="images-selected-count" class="count-badge">0</span></p>
                 </div>
                 
-                <button id="start-aggregation-btn" class="detect-btn" disabled>Start Batch Processing</button>
+                <button id="start-aggregation-btn" class="detect-btn" disabled>Begin Batch Analysis</button>
             </div>
         </div>
 
         <!-- Results Section -->
         <div id="results-section" class="results-section hidden">
-            <h2>Detection Results</h2>
+            <h2>Analysis Results</h2>
             
             <!-- Single Image Results -->
             <div id="single-results-section" style="display: none;">
                 <div class="images-container">
                     <div class="image-box">
                         <h3>Original Image</h3>
-                        <img id="original-img" alt="Original image">
+                        <img id="original-img" alt="Original microscopy image">
                     </div>
                     <div class="image-box">
-                        <h3>Annotated Image</h3>
-                        <img id="annotated-img" alt="Annotated image">
+                        <h3>Analysis Output</h3>
+                        <img id="annotated-img" alt="Analyzed image with detected elements highlighted">
                     </div>
                 </div>
 
                 <div class="counts-container">
-                    <h3>Detection Counts</h3>
+                    <h3>Detection Summary</h3>
                     <div id="counts-display" class="counts-display"></div>
                 </div>
             </div>
@@ -84,18 +95,18 @@
             <!-- Batch Aggregation Results -->
             <div id="aggregation-results-section" style="display: none;">
                 <div class="aggregation-progress">
-                    <h3>Batch Processing Progress</h3>
-                    <p>Processing image: <span id="current-image-count">0</span> / <span id="total-images-count">0</span></p>
+                    <h3>Processing Status</h3>
+                    <p>Images Processed: <span id="current-image-count">0</span> / <span id="total-images-count">0</span></p>
                     <div class="progress-bar">
                         <div id="progress-fill" class="progress-fill"></div>
                     </div>
                 </div>
 
                 <div class="aggregation-results">
-                    <h3>Aggregated Platelet Count (Clinical Protocol)</h3>
+                    <h3>Aggregated Results (Clinical Protocol)</h3>
                     <div class="clinical-cards">
                         <div class="clinical-card">
-                            <div class="label">Total Detections (All Images)</div>
+                            <div class="label">Total Detections</div>
                             <div class="value" id="total-detections">-</div>
                         </div>
                         <div class="clinical-card">
@@ -103,17 +114,17 @@
                             <div class="value" id="images-processed-count">-</div>
                         </div>
                         <div class="clinical-card">
-                            <div class="label">Avg Platelets/Image</div>
+                            <div class="label">Average per Image</div>
                             <div class="value" id="avg-platelets-per-image">-</div>
                         </div>
                         <div class="clinical-card highlight">
-                            <div class="label">📋 Platelets/µL (Final Result)</div>
+                            <div class="label">Final Result</div>
                             <div class="value" id="platelets-per-ul">-</div>
                         </div>
                     </div>
 
                     <div class="clinical-interpretation">
-                        <h4>🔬 Dengue Risk Assessment</h4>
+                        <h4>Clinical Assessment</h4>
                         <div id="clinical-status-display"></div>
                     </div>
                 </div>
