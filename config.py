@@ -21,13 +21,13 @@ else:
 
 MODEL_PATHS = {
     "malaria": os.path.join(base_model_dir, "malaria_best.pt"),
-    "platelet": os.path.join(base_model_dir, "platelet_best.pt")
+    "dengue": os.path.join(base_model_dir, "platelet_best.pt")  # Attention-based model for dengue analysis
 }
 
 # Model configurations
 # Based on actual training notebooks:
 # - Malaria.ipynb: Single class model (trophozoite only)
-# - Platelet.ipynb: Three class model (WBC, RBC, Platelet)
+# - Platelet.ipynb: Three class attention model (WBC, RBC, Platelet) for dengue diagnosis
 MODEL_CONFIGS = {
     "malaria": {
         "name": "Malaria Detection (Trophozoite)",
@@ -37,9 +37,9 @@ MODEL_CONFIGS = {
         },
         "count_mode": "total"  # Count total trophozoites detected
     },
-    "platelet": {
-        "name": "Dengue Detection (Platelet Analysis)",
-        "description": "Detects platelets in blood smear for dengue risk assessment",
+    "dengue": {
+        "name": "Dengue Analysis (Attention Visualization)",
+        "description": "Detects blood cells with attention mechanism for dengue risk assessment",
         "classes": {
             0: "WBC",  # White Blood Cell (class 0)
             1: "RBC",  # Red Blood Cell (class 1)

@@ -77,8 +77,8 @@ checkAvailableModels();
 modeSelect.addEventListener('change', (e) => {
     const selectedMode = e.target.value;
     
-    if (selectedMode === 'platelet') {
-        // Show aggregation mode for platelet
+    if (selectedMode === 'dengue') {
+        // Show aggregation mode for dengue
         singleImageSection.style.display = 'none';
         aggregationSection.style.display = 'block';
     } else if (selectedMode === 'malaria') {
@@ -215,7 +215,7 @@ startAggregationBtn.addEventListener('click', async () => {
         
         // Create aggregation session
         const sessionFormData = new FormData();
-        sessionFormData.append('mode', 'platelet');
+        sessionFormData.append('mode', modeSelect.value);  // Use selected mode, not hardcoded 'platelet'
         const sessionResponse = await fetch('/api/aggregation/start', {
             method: 'POST',
             body: sessionFormData
@@ -238,6 +238,8 @@ startAggregationBtn.addEventListener('click', async () => {
         // Upload images one by one
         const totalImages = batchFiles.length;
         let processedImages = 0;
+        const batchImagesContainer = document.getElementById('batch-images-container');
+        batchImagesContainer.innerHTML = '';  // Clear previous images
         
         singleResultsSection.style.display = 'none';
         aggregationResultsSection.style.display = 'block';
@@ -274,6 +276,22 @@ startAggregationBtn.addEventListener('click', async () => {
                 
                 const uploadData = await uploadResponse.json();
                 console.log(`Processed image ${processedImages}:`, uploadData.counts);
+                
+                // Display annotated image
+                if (uploadData.annotated_image) {
+                    const imageCard = document.createElement('div');
+                    imageCard.className = 'batch-image-card';
+                    imageCard.innerHTML = `
+                        <div class="batch-image-number">Image ${processedImages}</div>
+                        <img src="${uploadData.annotated_image}" alt="Annotated image ${processedImages}" class="batch-image">
+                        <div class="batch-image-counts">
+                            ${Object.entries(uploadData.counts).map(([className, count]) => 
+                                `<span>${className}: ${count}</span>`
+                            ).join('')}
+                        </div>
+                    `;
+                    batchImagesContainer.appendChild(imageCard);
+                }
             } catch (err) {
                 console.error(`Error uploading image ${processedImages}:`, err);
             }
@@ -324,8 +342,19 @@ function displayCounts(counts, mode) {
             <div class="value">${totalCount}</div>
         `;
         countsDisplay.appendChild(card);
+    } else if (mode === 'dengue') {
+        // Dengue model: Display counts for WBC, RBC, and Platelet
+        Object.entries(counts).forEach(([className, count]) => {
+            const card = document.createElement('div');
+            card.className = 'count-card';
+            card.innerHTML = `
+                <div class="label">${className}</div>
+                <div class="value">${count}</div>
+            `;
+            countsDisplay.appendChild(card);
+        });
     } else {
-        // Platelet model: Display counts for WBC, RBC, and Platelet
+        // Default: Display all counts
         Object.entries(counts).forEach(([className, count]) => {
             const card = document.createElement('div');
             card.className = 'count-card';

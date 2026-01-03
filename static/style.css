@@ -436,6 +436,81 @@ header h1 {
     font-weight: 600;
 }
 
+/* Batch Images Gallery */
+.batch-images-gallery {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 10px;
+    border: 1px solid #e8eef7;
+    margin-bottom: 30px;
+}
+
+.batch-images-gallery h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.batch-images-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.batch-image-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #ecf0f1;
+}
+
+.batch-image-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.batch-image-number {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.batch-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+.batch-image-counts {
+    padding: 12px;
+    background: white;
+    font-size: 0.8em;
+    color: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.batch-image-counts span {
+    padding: 4px 0;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.batch-image-counts span:last-child {
+    border-bottom: none;
+}
+
 .clinical-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));

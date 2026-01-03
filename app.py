@@ -230,15 +230,15 @@ async def start_aggregation(mode: str = Form(...)):
     Start a new aggregation session for multi-image batch processing
     
     Args:
-        mode: Detection mode - 'platelet' for platelet aggregation
+        mode: Detection mode - 'platelet' or 'dengue' for batch processing
     
     Returns:
         JSON with session ID for tracking the aggregation batch
     """
-    if mode != "platelet":
+    if mode != "dengue":
         raise HTTPException(
             status_code=400,
-            detail="Aggregation currently only supported for 'platelet' mode"
+            detail="Aggregation only supported for 'dengue' mode"
         )
     
     # Create new session
