@@ -135,8 +135,8 @@ async def get_available_models():
     
     available_modes = model_manager.get_available_models()
     
-    # Filter to only show visible models (hide others from UI but keep them functional)
-    visible_available_modes = [mode for mode in available_modes if mode in VISIBLE_MODELS]
+    # Filter to only show visible models IN ORDER of VISIBLE_MODELS (hide others from UI but keep them functional)
+    visible_available_modes = [mode for mode in VISIBLE_MODELS if mode in available_modes]
     
     # Build response with model details (only for visible models)
     models_info = {}

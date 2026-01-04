@@ -41,7 +41,7 @@ MODEL_CONFIGS = {
         "count_mode": "total"  # Count total trophozoites detected
     },
     "malaria_multi": {
-        "name": "Malaria Analysis",
+        "name": "Malaria Analysis (Beta)",
         "description": "Detects blood cells and all malaria parasite stages (RBC, trophozoite, ring, schizont, gametocyte)",
         "classes": {
             0: "Red Blood Cell",
@@ -82,7 +82,7 @@ MODEL_CONFIGS = {
 
 # Visible models in UI (keep others intact for future use)
 # To enable more models, add them to this list: "malaria", "malaria_advanced"
-VISIBLE_MODELS = ["malaria_multi", "dengue"]
+VISIBLE_MODELS = ["dengue", "malaria_multi"]
 
 # Magnification settings for platelet count calculation
 # Conversion factor depends on microscope field of view at different magnifications
