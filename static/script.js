@@ -261,10 +261,22 @@ async function processSingleImage(file, mode) {
             // Display malaria assessment if present
             if (data.malaria_interpretation) {
                 displayMalariaAssessment(data.malaria_interpretation);
+                // Hide dengue assessment for malaria modes
+                const dengueSection = document.getElementById('dengue-assessment-section');
+                if (dengueSection) dengueSection.classList.add('hidden');
             } else {
                 // Hide malaria assessment for non-malaria modes
                 const malariaSection = document.getElementById('malaria-assessment-section');
                 if (malariaSection) malariaSection.classList.add('hidden');
+            }
+
+            // Display dengue assessment if present
+            if (data.dengue_interpretation) {
+                displayDengueAssessment(data.dengue_interpretation);
+            } else {
+                // Hide dengue assessment for non-dengue modes
+                const dengueSection = document.getElementById('dengue-assessment-section');
+                if (dengueSection) dengueSection.classList.add('hidden');
             }
 
             // Show results
@@ -288,6 +300,9 @@ async function processBatchImages(files, mode) {
     resultsSection.classList.add('hidden');
     error.classList.add('hidden');
     analyzeBtn.disabled = true;
+
+    // Store annotated images from all models
+    const annotatedImages = [];
 
     try {
         // Create aggregation session
@@ -337,6 +352,16 @@ async function processBatchImages(files, mode) {
             const uploadData = await uploadResponse.json();
             processedImages++;
 
+            // Store annotated image data
+            if (uploadData.annotated_image) {
+                annotatedImages.push({
+                    filename: file.name,
+                    image: uploadData.annotated_image,
+                    counts: uploadData.counts,
+                    imageNumber: uploadData.image_number
+                });
+            }
+
             // Update progress
             const progressPercent = Math.round((processedImages / totalImages) * 100);
             const progressFill = document.getElementById('progress-fill');
@@ -363,7 +388,10 @@ async function processBatchImages(files, mode) {
 
         const finalData = await finalizeResponse.json();
 
-        // Display aggregation results
+        // Add annotated images to final data
+        finalData.annotated_images = annotatedImages;
+
+        // Display aggregation results (now includes annotated images)
         displayAggregationResults(finalData);
 
     } catch (err) {
@@ -420,56 +448,98 @@ function displayAggregationResults(data) {
     const aggregation = data.aggregation;
     const clinicalInterpretation = data.clinical_interpretation;
     const individualImages = data.individual_images || [];
+    const annotatedImages = data.annotated_images || [];
 
-    // Build per-image results table
+    // Build annotated images gallery first
     const tableContainer = document.getElementById('batch-images-container');
     if (tableContainer) {
-        let tableHtml = `
-            <h4>Per-Image Detection Results</h4>
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Image #</th>
-                        ${getTableHeaders(individualImages[0] || {}, mode)}
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
+        let galleryHtml = '';
+
+        // Add annotated images gallery if available
+        if (annotatedImages.length > 0) {
+            galleryHtml += `
+                <div class="annotated-gallery-section">
+                    <div class="gallery-header" onclick="toggleGallery()">
+                        <h4>📸 Annotated Images (${annotatedImages.length})</h4>
+                        <span id="gallery-toggle-icon" class="toggle-icon">▼</span>
+                    </div>
+                    <div id="annotated-gallery" class="annotated-gallery">
+                        ${annotatedImages.map((img, idx) => `
+                            <div class="annotated-thumb" onclick="showFullImage(${idx})">
+                                <img src="${img.image}" alt="Image ${img.imageNumber}" title="${img.filename}">
+                                <div class="thumb-label">#${img.imageNumber}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Full Image Modal -->
+                <div id="image-modal" class="image-modal hidden" onclick="closeModal(event)">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <button class="modal-close" onclick="closeModal()">&times;</button>
+                        <button class="modal-nav modal-prev" onclick="navigateImage(-1)">❮</button>
+                        <div class="modal-image-container">
+                            <img id="modal-image" src="" alt="Full size annotated image">
+                            <div id="modal-caption" class="modal-caption"></div>
+                        </div>
+                        <button class="modal-nav modal-next" onclick="navigateImage(1)">❯</button>
+                    </div>
+                </div>
+            `;
+
+            // Store annotated images globally for modal navigation
+            window.annotatedImagesData = annotatedImages;
+            window.currentImageIndex = 0;
+        }
+
+        // Add per-image results table in a table section
+        galleryHtml += `
+            <div class="table-section">
+                <h4>Per-Image Detection Results</h4>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Image #</th>
+                            ${getTableHeaders(individualImages[0] || {}, mode)}
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
 
         let totals = {};
         individualImages.forEach((counts, index) => {
             const total = Object.values(counts).reduce((sum, val) => sum + val, 0);
-            tableHtml += `<tr><td>${index + 1}</td>`;
+            galleryHtml += `<tr><td>${index + 1}</td>`;
 
             Object.entries(counts).forEach(([className, count]) => {
                 if (className !== 'Difficult') {
-                    tableHtml += `<td>${count}</td>`;
+                    galleryHtml += `<td>${count}</td>`;
                     totals[className] = (totals[className] || 0) + count;
                 }
             });
 
-            tableHtml += `<td><strong>${total}</strong></td></tr>`;
+            galleryHtml += `<td><strong>${total}</strong></td></tr>`;
         });
 
         // Add totals row
         const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
-        tableHtml += `<tr class="totals-row"><td><strong>Total</strong></td>`;
+        galleryHtml += `<tr class="totals-row"><td><strong>Total</strong></td>`;
         Object.values(totals).forEach(val => {
-            tableHtml += `<td><strong>${val}</strong></td>`;
+            galleryHtml += `<td><strong>${val}</strong></td>`;
         });
-        tableHtml += `<td><strong>${grandTotal}</strong></td></tr>`;
+        galleryHtml += `<td><strong>${grandTotal}</strong></td></tr>`;
 
-        // Add averages row
-        const numImages = individualImages.length;
-        tableHtml += `<tr class="averages-row"><td><strong>Average</strong></td>`;
+        // Add averages row - use aggregation.images_count for consistency with backend
+        const numImages = aggregation.images_count || individualImages.length;
+        galleryHtml += `<tr class="averages-row"><td><strong>Average</strong></td>`;
         Object.values(totals).forEach(val => {
-            tableHtml += `<td><strong>${(val / numImages).toFixed(1)}</strong></td>`;
+            galleryHtml += `<td><strong>${(val / numImages).toFixed(2)}</strong></td>`;
         });
-        tableHtml += `<td><strong>${(grandTotal / numImages).toFixed(1)}</strong></td></tr>`;
+        galleryHtml += `<td><strong>${(grandTotal / numImages).toFixed(2)}</strong></td></tr>`;
 
-        tableHtml += '</tbody></table>';
-        tableContainer.innerHTML = tableHtml;
+        galleryHtml += '</tbody></table></div>';
+        tableContainer.innerHTML = galleryHtml;
     }
 
     // Update summary stats
@@ -704,6 +774,50 @@ function getMalariaIcon(severity) {
     }
 }
 
+function displayDengueAssessment(interpretation) {
+    const dengueSection = document.getElementById('dengue-assessment-section');
+    const dengueDisplay = document.getElementById('dengue-assessment-display');
+
+    if (!dengueSection || !dengueDisplay) return;
+
+    dengueSection.classList.remove('hidden');
+
+    const status = interpretation.clinical_status;
+    const severity = status.severity || 'normal';
+    const estimatedCount = interpretation.estimated_platelets_per_ul;
+
+    dengueDisplay.innerHTML = `
+        <div class="dengue-result ${severity}">
+            <div class="dengue-estimate-cards">
+                <div class="dengue-card">
+                    <div class="label">Platelets Detected</div>
+                    <div class="value">${interpretation.platelet_count}</div>
+                </div>
+                <div class="dengue-card highlight">
+                    <div class="label">Estimated Count</div>
+                    <div class="value">${Number(estimatedCount).toLocaleString()}/µL</div>
+                </div>
+            </div>
+            
+            <div class="dengue-status-header">
+                <div class="risk-badge ${severity}">
+                    ${getRiskIcon(severity)} ${status.risk_level}
+                </div>
+            </div>
+            <div class="status-badge ${severity}">
+                <strong>${status.status}</strong><br>
+                <span>${status.range}</span>
+            </div>
+            <p class="interpretation-text">${status.interpretation}</p>
+            
+            <div class="dengue-disclaimer">
+                <strong>⚠️ Single Field Estimate</strong>
+                <p>${interpretation.disclaimer}</p>
+            </div>
+        </div>
+    `;
+}
+
 function showError(message) {
     // Handle error objects
     if (typeof message === 'object') {
@@ -712,5 +826,91 @@ function showError(message) {
     error.textContent = `Error: ${message}`;
     error.classList.remove('hidden');
 }
+
+// ============ ANNOTATED IMAGES GALLERY FUNCTIONS ============
+
+// Toggle gallery visibility
+function toggleGallery() {
+    const gallery = document.getElementById('annotated-gallery');
+    const toggleIcon = document.getElementById('gallery-toggle-icon');
+
+    if (gallery && toggleIcon) {
+        gallery.classList.toggle('collapsed');
+        toggleIcon.textContent = gallery.classList.contains('collapsed') ? '▶' : '▼';
+    }
+}
+
+// Show full-size image in modal
+function showFullImage(index) {
+    const modal = document.getElementById('image-modal');
+    const modalImage = document.getElementById('modal-image');
+    const modalCaption = document.getElementById('modal-caption');
+
+    if (!modal || !modalImage || !window.annotatedImagesData) return;
+
+    window.currentImageIndex = index;
+    const imageData = window.annotatedImagesData[index];
+
+    modalImage.src = imageData.image;
+
+    // Build caption with counts
+    let countText = '';
+    if (imageData.counts) {
+        countText = Object.entries(imageData.counts)
+            .filter(([key]) => key !== 'Difficult')
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(' | ');
+    }
+
+    modalCaption.innerHTML = `
+        <strong>Image #${imageData.imageNumber}</strong> - ${imageData.filename}
+        <br><span class="count-summary">${countText}</span>
+    `;
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+}
+
+// Close the image modal
+function closeModal(event) {
+    // If event passed, only close if clicking the backdrop
+    if (event && event.target.id !== 'image-modal') return;
+
+    const modal = document.getElementById('image-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scroll
+    }
+}
+
+// Navigate between images in modal
+function navigateImage(direction) {
+    if (!window.annotatedImagesData) return;
+
+    const newIndex = window.currentImageIndex + direction;
+
+    // Wrap around
+    if (newIndex < 0) {
+        showFullImage(window.annotatedImagesData.length - 1);
+    } else if (newIndex >= window.annotatedImagesData.length) {
+        showFullImage(0);
+    } else {
+        showFullImage(newIndex);
+    }
+}
+
+// Keyboard navigation for modal
+document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('image-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+
+    if (e.key === 'Escape') {
+        closeModal();
+    } else if (e.key === 'ArrowLeft') {
+        navigateImage(-1);
+    } else if (e.key === 'ArrowRight') {
+        navigateImage(1);
+    }
+});
 
 

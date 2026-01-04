@@ -228,6 +228,19 @@ async def detect(
         if mode in ["malaria", "malaria_multi", "malaria_advanced"]:
             response_data["malaria_interpretation"] = get_malaria_interpretation(counts)
         
+        # Add dengue clinical interpretation for dengue mode (single image quick estimate)
+        elif mode == "dengue":
+            platelet_count = counts.get("Platelet", 0)
+            # Use default conversion factor for quick single-image estimate
+            estimated_platelets_per_ul = platelet_count * 15000  # Default 100x oil immersion
+            response_data["dengue_interpretation"] = {
+                "platelet_count": platelet_count,
+                "estimated_platelets_per_ul": estimated_platelets_per_ul,
+                "clinical_status": get_clinical_interpretation(estimated_platelets_per_ul),
+                "is_single_image": True,
+                "disclaimer": "This is a quick estimate from a single field. For accurate clinical results, analyze 10-20 images from different fields."
+            }
+        
         return JSONResponse(content=response_data)
     except HTTPException:
         raise
