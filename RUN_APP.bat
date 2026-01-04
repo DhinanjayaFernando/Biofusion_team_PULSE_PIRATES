@@ -14,8 +14,9 @@ echo   - IPv4-only binding (faster than localhost DNS resolution)
 echo.
 rem Start the server in a new terminal window on IPv4 (127.0.0.1) for better performance
 start "ML Blood App" cmd /k "cd /d D:\p1 && uvicorn app:app --host 127.0.0.1 --port 8000"
-rem Give the server a moment to start, then open the browser
-timeout /t 2 >nul
+rem Give the server time to load all models (including large 52MB model), then open browser
+echo Waiting for models to load...
+timeout /t 8 >nul
 start "" "http://127.0.0.1:8000"
 echo.
 echo The app should open in your default browser. Close this window to stop the server.

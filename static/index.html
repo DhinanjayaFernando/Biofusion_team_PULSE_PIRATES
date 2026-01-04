@@ -92,6 +92,15 @@
                     <p>Selected Images: <span id="images-selected-count" class="count-badge">0</span></p>
                 </div>
 
+                <!-- Selected Images Preview with Remove Option -->
+                <div id="selected-images-preview" class="selected-images-preview hidden">
+                    <div class="preview-header">
+                        <span>Selected Files (click × to remove):</span>
+                        <button id="clear-all-btn" class="clear-all-btn">Clear All</button>
+                    </div>
+                    <div id="selected-images-list" class="selected-images-list"></div>
+                </div>
+
                 <button id="start-aggregation-btn" class="detect-btn" disabled>Begin Batch Analysis</button>
             </div>
         </div>

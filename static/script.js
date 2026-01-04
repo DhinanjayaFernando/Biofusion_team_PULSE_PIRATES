@@ -188,29 +188,93 @@ detectBtn.addEventListener('click', async () => {
 
 // Handle batch file selection
 batchImagesInput.addEventListener('change', (e) => {
-    batchFiles = Array.from(e.target.files);
+    const newFiles = Array.from(e.target.files);
+    // Add new files to existing selection
+    batchFiles = [...batchFiles, ...newFiles];
+    // Reset input so it doesn't show misleading count
+    batchImagesInput.value = '';
+    updateBatchPreview();
+});
+
+// Update batch preview display
+function updateBatchPreview() {
     imagesSelectedCount.textContent = batchFiles.length;
+
+    const previewContainer = document.getElementById('selected-images-preview');
+    const imagesList = document.getElementById('selected-images-list');
 
     if (batchFiles.length > 0) {
         startAggregationBtn.disabled = false;
+        previewContainer.classList.remove('hidden');
 
-        if (batchFiles.length < 10) {
+        // Clear and rebuild the list
+        imagesList.innerHTML = '';
+
+        batchFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'selected-image-item';
+
+            // Create thumbnail
+            const thumbnail = document.createElement('img');
+            thumbnail.className = 'image-thumbnail';
+            thumbnail.alt = file.name;
+
+            // Read file for thumbnail preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                thumbnail.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            item.innerHTML = `
+                <div class="image-thumb-container"></div>
+                <span class="file-name" title="${file.name}">${file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
+                <button class="remove-image-btn" data-index="${index}" title="Remove this image">×</button>
+            `;
+
+            // Insert thumbnail into container
+            item.querySelector('.image-thumb-container').appendChild(thumbnail);
+            imagesList.appendChild(item);
+        });
+
+        // Add remove button listeners
+        document.querySelectorAll('.remove-image-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                batchFiles.splice(index, 1);
+                updateBatchPreview();
+            });
+        });
+
+        // Show warning if less than 10 images
+        const oldWarning = document.querySelector('.batch-warning');
+        if (oldWarning) oldWarning.remove();
+
+        if (batchFiles.length < 10 && batchFiles.length > 0) {
             const warning = document.createElement('small');
             warning.style.color = '#ff9800';
             warning.innerHTML = `⚠️ Recommended: 10-20 images for accurate aggregation (you have ${batchFiles.length})`;
-            // Remove old warning if exists
-            const oldWarning = document.querySelector('.batch-warning');
-            if (oldWarning) oldWarning.remove();
             warning.className = 'batch-warning';
             batchImagesInput.parentElement.appendChild(warning);
         }
     } else {
         startAggregationBtn.disabled = true;
+        previewContainer.classList.add('hidden');
+        imagesList.innerHTML = '';
+        const oldWarning = document.querySelector('.batch-warning');
+        if (oldWarning) oldWarning.remove();
     }
 
     // Hide previous results
     resultsSection.classList.add('hidden');
     error.classList.add('hidden');
+}
+
+// Clear all button handler
+document.getElementById('clear-all-btn').addEventListener('click', () => {
+    batchFiles = [];
+    batchImagesInput.value = ''; // Clear the file input
+    updateBatchPreview();
 });
 
 // Handle batch processing
