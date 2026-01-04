@@ -1,26 +1,21 @@
-// DOM Elements - Single Image Mode
-const imageInput = document.getElementById('image-input');
+// DOM Elements - Unified System
 const modeSelect = document.getElementById('mode-select');
-const detectBtn = document.getElementById('detect-btn');
+const uploadSection = document.getElementById('upload-section');
+const unifiedImageInput = document.getElementById('unified-image-input');
+const imagesInfo = document.getElementById('images-info');
+const imagesSelectedCount = document.getElementById('images-selected-count');
+const analyzeBtn = document.getElementById('analyze-btn');
 const resultsSection = document.getElementById('results-section');
+const singleResultsSection = document.getElementById('single-results-section');
+const aggregationResultsSection = document.getElementById('aggregation-results-section');
 const loading = document.getElementById('loading');
 const error = document.getElementById('error');
 const originalImg = document.getElementById('original-img');
 const annotatedImg = document.getElementById('annotated-img');
 const countsDisplay = document.getElementById('counts-display');
 
-// DOM Elements - Aggregation Mode
-const singleImageSection = document.getElementById('single-image-section');
-const aggregationSection = document.getElementById('aggregation-section');
-const batchImagesInput = document.getElementById('batch-images-input');
-const imagesSelectedCount = document.getElementById('images-selected-count');
-const startAggregationBtn = document.getElementById('start-aggregation-btn');
-const singleResultsSection = document.getElementById('single-results-section');
-const aggregationResultsSection = document.getElementById('aggregation-results-section');
-
 // State
-let selectedFile = null;
-let batchFiles = [];
+let selectedFiles = [];
 let currentAggregationSession = null;
 
 // Check available models on page load
@@ -65,6 +60,11 @@ async function checkAvailableModels() {
             infoDiv.innerHTML = `<strong>ℹ️ Note:</strong> Some models are not available: ${unavailableNames}. Only available models are shown.`;
             modeSelect.parentElement.appendChild(infoDiv);
         }
+
+        // Trigger change event to show upload section if a model is selected
+        if (modeSelect.value) {
+            modeSelect.dispatchEvent(new Event('change'));
+        }
     } catch (err) {
         console.error('Failed to check available models:', err);
     }
@@ -76,66 +76,164 @@ checkAvailableModels();
 // Handle mode selection change
 modeSelect.addEventListener('change', (e) => {
     const selectedMode = e.target.value;
-    const malariaDisclaimer = document.getElementById('malaria-disclaimer');
 
-    if (selectedMode === 'dengue') {
-        // Show aggregation mode for dengue
-        singleImageSection.style.display = 'none';
-        aggregationSection.style.display = 'block';
-        if (malariaDisclaimer) malariaDisclaimer.classList.add('hidden');
-    } else if (selectedMode === 'malaria' || selectedMode === 'malaria_multi' || selectedMode === 'malaria_advanced') {
-        // Show single image mode for all malaria detection modes
-        singleImageSection.style.display = 'block';
-        aggregationSection.style.display = 'none';
-        // Show malaria disclaimer
-        if (malariaDisclaimer) malariaDisclaimer.classList.remove('hidden');
-    } else {
-        // No selection
-        singleImageSection.style.display = 'block';
-        aggregationSection.style.display = 'none';
-        if (malariaDisclaimer) malariaDisclaimer.classList.add('hidden');
-    }
-});
+    if (selectedMode) {
+        // Show upload section
+        uploadSection.classList.remove('hidden');
 
-// ============ SINGLE IMAGE MODE ============
-
-// Handle single file selection
-imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        selectedFile = file;
-        detectBtn.disabled = false;
-
-        // Preview original image
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            originalImg.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        // Reset file selection
+        selectedFiles = [];
+        unifiedImageInput.value = '';
+        updateFilePreview();
 
         // Hide previous results
         resultsSection.classList.add('hidden');
         error.classList.add('hidden');
+    } else {
+        // No selection - hide upload section
+        uploadSection.classList.add('hidden');
     }
 });
 
-// Handle single detect button click
-detectBtn.addEventListener('click', async () => {
-    if (!selectedFile) {
-        showError('Please select an image first');
+// ============ UNIFIED IMAGE UPLOAD ============
+
+// Handle file selection
+unifiedImageInput.addEventListener('change', (e) => {
+    const newFiles = Array.from(e.target.files);
+    // Add new files to existing selection
+    selectedFiles = [...selectedFiles, ...newFiles];
+    // Reset input so count doesn't show misleadingly
+    unifiedImageInput.value = '';
+    updateFilePreview();
+});
+
+// Update file preview display
+function updateFilePreview() {
+    const previewContainer = document.getElementById('selected-images-preview');
+    const imagesList = document.getElementById('selected-images-list');
+
+    imagesSelectedCount.textContent = selectedFiles.length;
+
+    if (selectedFiles.length > 0) {
+        analyzeBtn.disabled = false;
+        imagesInfo.classList.remove('hidden');
+        previewContainer.classList.remove('hidden');
+
+        // Update button text based on count
+        analyzeBtn.textContent = selectedFiles.length === 1 ? 'Analyze Image' : `Analyze ${selectedFiles.length} Images`;
+
+        // Clear and rebuild the list
+        imagesList.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'selected-image-item';
+
+            // Create thumbnail
+            const thumbnail = document.createElement('img');
+            thumbnail.className = 'image-thumbnail';
+            thumbnail.alt = file.name;
+
+            // Read file for thumbnail preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                thumbnail.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            item.innerHTML = `
+                <div class="image-thumb-container"></div>
+                <span class="file-name" title="${file.name}">${file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
+                <button class="remove-image-btn" data-index="${index}" title="Remove this image">×</button>
+            `;
+
+            // Insert thumbnail into container
+            item.querySelector('.image-thumb-container').appendChild(thumbnail);
+            imagesList.appendChild(item);
+        });
+
+        // Add remove button listeners
+        document.querySelectorAll('.remove-image-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                selectedFiles.splice(index, 1);
+                updateFilePreview();
+            });
+        });
+
+        // Show warning if 2-9 images (recommend 10-20 for batch)
+        const oldWarning = document.querySelector('.batch-warning');
+        if (oldWarning) oldWarning.remove();
+
+        if (selectedFiles.length >= 2 && selectedFiles.length < 10) {
+            const warning = document.createElement('small');
+            warning.style.color = '#ff9800';
+            warning.innerHTML = `⚠️ For best batch results, use 10-20 images (you have ${selectedFiles.length})`;
+            warning.className = 'batch-warning';
+            unifiedImageInput.parentElement.appendChild(warning);
+        }
+    } else {
+        analyzeBtn.disabled = true;
+        analyzeBtn.textContent = 'Analyze Images';
+        imagesInfo.classList.add('hidden');
+        previewContainer.classList.add('hidden');
+        imagesList.innerHTML = '';
+        const oldWarning = document.querySelector('.batch-warning');
+        if (oldWarning) oldWarning.remove();
+    }
+
+    // Hide previous results
+    resultsSection.classList.add('hidden');
+    error.classList.add('hidden');
+}
+
+// Clear all button handler
+document.getElementById('clear-all-btn').addEventListener('click', () => {
+    selectedFiles = [];
+    unifiedImageInput.value = '';
+    updateFilePreview();
+});
+
+// Handle analyze button click
+analyzeBtn.addEventListener('click', async () => {
+    if (selectedFiles.length === 0) {
+        showError('Please select at least one image');
         return;
     }
 
-    // Show loading, hide results and error
+    const mode = modeSelect.value;
+    if (!mode) {
+        showError('Please select an analysis type');
+        return;
+    }
+
+    if (selectedFiles.length === 1) {
+        // Single image analysis
+        await processSingleImage(selectedFiles[0], mode);
+    } else {
+        // Batch analysis
+        await processBatchImages(selectedFiles, mode);
+    }
+});
+
+// Process single image
+async function processSingleImage(file, mode) {
     loading.classList.remove('hidden');
     resultsSection.classList.add('hidden');
     error.classList.add('hidden');
-    detectBtn.disabled = true;
+    analyzeBtn.disabled = true;
+
+    // Preview original image
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        originalImg.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
 
     try {
         const formData = new FormData();
-        formData.append('image', selectedFile);
-        formData.append('mode', modeSelect.value);
+        formData.append('image', file);
+        formData.append('mode', mode);
 
         const response = await fetch('/detect', {
             method: 'POST',
@@ -180,236 +278,101 @@ detectBtn.addEventListener('click', async () => {
         showError(err.message || 'An error occurred during detection');
     } finally {
         loading.classList.add('hidden');
-        detectBtn.disabled = false;
+        analyzeBtn.disabled = false;
     }
-});
-
-// ============ BATCH AGGREGATION MODE ============
-
-// Handle batch file selection
-batchImagesInput.addEventListener('change', (e) => {
-    const newFiles = Array.from(e.target.files);
-    // Add new files to existing selection
-    batchFiles = [...batchFiles, ...newFiles];
-    // Reset input so it doesn't show misleading count
-    batchImagesInput.value = '';
-    updateBatchPreview();
-});
-
-// Update batch preview display
-function updateBatchPreview() {
-    imagesSelectedCount.textContent = batchFiles.length;
-
-    const previewContainer = document.getElementById('selected-images-preview');
-    const imagesList = document.getElementById('selected-images-list');
-
-    if (batchFiles.length > 0) {
-        startAggregationBtn.disabled = false;
-        previewContainer.classList.remove('hidden');
-
-        // Clear and rebuild the list
-        imagesList.innerHTML = '';
-
-        batchFiles.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'selected-image-item';
-
-            // Create thumbnail
-            const thumbnail = document.createElement('img');
-            thumbnail.className = 'image-thumbnail';
-            thumbnail.alt = file.name;
-
-            // Read file for thumbnail preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                thumbnail.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-
-            item.innerHTML = `
-                <div class="image-thumb-container"></div>
-                <span class="file-name" title="${file.name}">${file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
-                <button class="remove-image-btn" data-index="${index}" title="Remove this image">×</button>
-            `;
-
-            // Insert thumbnail into container
-            item.querySelector('.image-thumb-container').appendChild(thumbnail);
-            imagesList.appendChild(item);
-        });
-
-        // Add remove button listeners
-        document.querySelectorAll('.remove-image-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                batchFiles.splice(index, 1);
-                updateBatchPreview();
-            });
-        });
-
-        // Show warning if less than 10 images
-        const oldWarning = document.querySelector('.batch-warning');
-        if (oldWarning) oldWarning.remove();
-
-        if (batchFiles.length < 10 && batchFiles.length > 0) {
-            const warning = document.createElement('small');
-            warning.style.color = '#ff9800';
-            warning.innerHTML = `⚠️ Recommended: 10-20 images for accurate aggregation (you have ${batchFiles.length})`;
-            warning.className = 'batch-warning';
-            batchImagesInput.parentElement.appendChild(warning);
-        }
-    } else {
-        startAggregationBtn.disabled = true;
-        previewContainer.classList.add('hidden');
-        imagesList.innerHTML = '';
-        const oldWarning = document.querySelector('.batch-warning');
-        if (oldWarning) oldWarning.remove();
-    }
-
-    // Hide previous results
-    resultsSection.classList.add('hidden');
-    error.classList.add('hidden');
 }
 
-// Clear all button handler
-document.getElementById('clear-all-btn').addEventListener('click', () => {
-    batchFiles = [];
-    batchImagesInput.value = ''; // Clear the file input
-    updateBatchPreview();
-});
+// Process batch images
+async function processBatchImages(files, mode) {
+    loading.classList.remove('hidden');
+    resultsSection.classList.add('hidden');
+    error.classList.add('hidden');
+    analyzeBtn.disabled = true;
 
-// Handle batch processing
-startAggregationBtn.addEventListener('click', async () => {
-    if (batchFiles.length === 0) {
-        showError('Please select at least one image');
-        return;
-    }
-
-    // Start aggregation session
     try {
-        loading.classList.remove('hidden');
-        resultsSection.classList.add('hidden');
-        error.classList.add('hidden');
-        startAggregationBtn.disabled = true;
-
-        // Create aggregation session with magnification
-        const magnificationSelect = document.getElementById('magnification-select');
+        // Create aggregation session
         const sessionFormData = new FormData();
-        sessionFormData.append('mode', modeSelect.value);  // Use selected mode, not hardcoded 'platelet'
-        sessionFormData.append('magnification', magnificationSelect ? magnificationSelect.value : '100x_oil');
+        sessionFormData.append('mode', mode);
+        sessionFormData.append('magnification', '100x_oil');
+
         const sessionResponse = await fetch('/api/aggregation/start', {
             method: 'POST',
             body: sessionFormData
         });
 
         if (!sessionResponse.ok) {
-            try {
-                const errorData = await sessionResponse.json();
-                throw new Error(errorData.detail || 'Failed to start aggregation session');
-            } catch (parseErr) {
-                throw new Error(`Failed to start aggregation session (HTTP ${sessionResponse.status})`);
-            }
+            const errorData = await sessionResponse.json();
+            throw new Error(errorData.detail || 'Failed to start aggregation session');
         }
 
         const sessionData = await sessionResponse.json();
         currentAggregationSession = sessionData.session_id;
 
-        console.log('Started aggregation session:', currentAggregationSession);
-
         // Upload images one by one
-        const totalImages = batchFiles.length;
+        const totalImages = files.length;
         let processedImages = 0;
         const batchImagesContainer = document.getElementById('batch-images-container');
-        batchImagesContainer.innerHTML = '';  // Clear previous images
+        if (batchImagesContainer) batchImagesContainer.innerHTML = '';
 
         singleResultsSection.style.display = 'none';
         aggregationResultsSection.style.display = 'block';
         resultsSection.classList.remove('hidden');
 
-        for (let i = 0; i < batchFiles.length; i++) {
-            const file = batchFiles[i];
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('session_id', currentAggregationSession);
+            formData.append('image', file);
+            formData.append('mode', mode);
+
+            const uploadResponse = await fetch('/api/aggregation/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                console.error(`Failed to upload ${file.name}`);
+                continue;
+            }
+
+            const uploadData = await uploadResponse.json();
+            processedImages++;
 
             // Update progress
-            processedImages = i + 1;
-            document.getElementById('current-image-count').textContent = processedImages;
-            document.getElementById('total-images-count').textContent = totalImages;
-            document.getElementById('progress-fill').style.width = ((processedImages / totalImages) * 100) + '%';
+            const progressPercent = Math.round((processedImages / totalImages) * 100);
+            const progressFill = document.getElementById('progress-fill');
+            const currentCount = document.getElementById('current-image-count');
+            const totalCount = document.getElementById('total-images-count');
 
-            try {
-                const formData = new FormData();
-                formData.append('session_id', currentAggregationSession);
-                formData.append('image', file);
-
-                const uploadResponse = await fetch('/api/aggregation/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!uploadResponse.ok) {
-                    try {
-                        const errorData = await uploadResponse.json();
-                        console.error(`Error processing image ${processedImages}:`, errorData.detail);
-                    } catch (parseErr) {
-                        console.error(`Error processing image ${processedImages}: HTTP ${uploadResponse.status}`);
-                    }
-                    continue;
-                }
-
-                const uploadData = await uploadResponse.json();
-                console.log(`Processed image ${processedImages}:`, uploadData.counts);
-
-                // Display annotated image
-                if (uploadData.annotated_image) {
-                    const imageCard = document.createElement('div');
-                    imageCard.className = 'batch-image-card';
-                    imageCard.innerHTML = `
-                        <div class="batch-image-number">Image ${processedImages}</div>
-                        <img src="${uploadData.annotated_image}" alt="Annotated image ${processedImages}" class="batch-image">
-                        <div class="batch-image-counts">
-                            ${Object.entries(uploadData.counts)
-                            .filter(([className]) => className !== 'Difficult')
-                            .map(([className, count]) =>
-                                `<span>${className}: ${count}</span>`
-                            ).join('')}
-                        </div>
-                    `;
-                    batchImagesContainer.appendChild(imageCard);
-                }
-            } catch (err) {
-                console.error(`Error uploading image ${processedImages}:`, err);
-            }
+            if (progressFill) progressFill.style.width = `${progressPercent}%`;
+            if (currentCount) currentCount.textContent = processedImages;
+            if (totalCount) totalCount.textContent = totalImages;
         }
 
         // Finalize aggregation
-        console.log('Finalizing aggregation...');
         const finalizeFormData = new FormData();
         finalizeFormData.append('session_id', currentAggregationSession);
+
         const finalizeResponse = await fetch('/api/aggregation/finalize', {
             method: 'POST',
             body: finalizeFormData
         });
 
         if (!finalizeResponse.ok) {
-            try {
-                const errorData = await finalizeResponse.json();
-                throw new Error(errorData.detail || 'Failed to finalize aggregation');
-            } catch (parseErr) {
-                throw new Error(`Failed to finalize aggregation (HTTP ${finalizeResponse.status})`);
-            }
+            throw new Error('Failed to finalize aggregation');
         }
 
         const finalData = await finalizeResponse.json();
-        console.log('Aggregation result:', finalData);
 
-        // Display aggregated results
-        displayAggregationResults(finalData.aggregation, finalData.clinical_interpretation);
+        // Display aggregation results
+        displayAggregationResults(finalData);
 
     } catch (err) {
         showError(err.message || 'An error occurred during batch processing');
     } finally {
         loading.classList.add('hidden');
-        startAggregationBtn.disabled = batchFiles.length === 0;
+        analyzeBtn.disabled = false;
     }
-});
+}
 
 function displayCounts(counts, mode) {
     countsDisplay.innerHTML = '';
@@ -452,33 +415,174 @@ function displayCounts(counts, mode) {
     }
 }
 
-function displayAggregationResults(aggregation, clinicalInterpretation) {
-    // Update aggregation cards
-    document.getElementById('total-detections').textContent = aggregation.total_detections;
-    document.getElementById('images-processed-count').textContent = aggregation.images_count;
-    document.getElementById('avg-platelets-per-image').textContent = aggregation.avg_platelets_per_image.toFixed(2);
-    document.getElementById('platelets-per-ul').textContent = Number(aggregation.platelets_per_ul).toLocaleString();
+function displayAggregationResults(data) {
+    const mode = data.mode || 'dengue';
+    const aggregation = data.aggregation;
+    const clinicalInterpretation = data.clinical_interpretation;
+    const individualImages = data.individual_images || [];
 
-    // Update clinical interpretation with risk assessment
+    // Build per-image results table
+    const tableContainer = document.getElementById('batch-images-container');
+    if (tableContainer) {
+        let tableHtml = `
+            <h4>Per-Image Detection Results</h4>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Image #</th>
+                        ${getTableHeaders(individualImages[0] || {}, mode)}
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        let totals = {};
+        individualImages.forEach((counts, index) => {
+            const total = Object.values(counts).reduce((sum, val) => sum + val, 0);
+            tableHtml += `<tr><td>${index + 1}</td>`;
+
+            Object.entries(counts).forEach(([className, count]) => {
+                if (className !== 'Difficult') {
+                    tableHtml += `<td>${count}</td>`;
+                    totals[className] = (totals[className] || 0) + count;
+                }
+            });
+
+            tableHtml += `<td><strong>${total}</strong></td></tr>`;
+        });
+
+        // Add totals row
+        const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+        tableHtml += `<tr class="totals-row"><td><strong>Total</strong></td>`;
+        Object.values(totals).forEach(val => {
+            tableHtml += `<td><strong>${val}</strong></td>`;
+        });
+        tableHtml += `<td><strong>${grandTotal}</strong></td></tr>`;
+
+        // Add averages row
+        const numImages = individualImages.length;
+        tableHtml += `<tr class="averages-row"><td><strong>Average</strong></td>`;
+        Object.values(totals).forEach(val => {
+            tableHtml += `<td><strong>${(val / numImages).toFixed(1)}</strong></td>`;
+        });
+        tableHtml += `<td><strong>${(grandTotal / numImages).toFixed(1)}</strong></td></tr>`;
+
+        tableHtml += '</tbody></table>';
+        tableContainer.innerHTML = tableHtml;
+    }
+
+    // Update summary stats
+    const totalDetections = document.getElementById('total-detections');
+    const imagesProcessed = document.getElementById('images-processed-count');
+    const avgPerImage = document.getElementById('avg-platelets-per-image');
+    const perUl = document.getElementById('platelets-per-ul');
+
+    // Normalize mode string
+    const modeNormalized = mode ? mode.toLowerCase() : 'dengue';
+
+    if (totalDetections) totalDetections.textContent = aggregation.total_detections || 0;
+    if (imagesProcessed) imagesProcessed.textContent = aggregation.images_count || 0;
+
+    if (modeNormalized.includes('dengue')) {
+        // Dengue mode - show platelet-specific stats
+        if (avgPerImage) {
+            avgPerImage.textContent = aggregation.avg_platelets_per_image ? aggregation.avg_platelets_per_image.toFixed(2) : '0.00';
+            const label = avgPerImage.previousElementSibling;
+            if (label) label.textContent = 'Average per Image';
+        }
+
+        if (perUl) {
+            perUl.textContent = Number(aggregation.platelets_per_ul || 0).toLocaleString();
+            // Ensure label helps context
+            const label = perUl.previousElementSibling;
+            if (label) {
+                label.textContent = 'Platelet Count (per µL)';
+                label.style.textTransform = 'none'; // Prevent uppercase transformation
+            }
+            // Make sure parent is visible
+            perUl.parentElement.style.display = 'flex';
+        }
+    } else {
+        // Malaria modes - show parasite counts
+        const totalParasites = clinicalInterpretation.total_parasites || 0;
+        if (totalDetections) totalDetections.textContent = totalParasites;
+
+        if (avgPerImage) {
+            avgPerImage.textContent = (totalParasites / (aggregation.images_count || 1)).toFixed(2);
+            // Update label for malaria
+            const label = avgPerImage.previousElementSibling;
+            if (label) label.textContent = 'Avg Parasites/Image';
+        }
+
+        // Ensure platelet card is hidden for malaria unless explicitly needed
+        if (perUl) perUl.parentElement.style.display = 'none';
+    }
+
+    // Update clinical interpretation
     const clinicalStatusDisplay = document.getElementById('clinical-status-display');
-    const severity = clinicalInterpretation.severity || 'normal';
+    if (clinicalStatusDisplay) {
+        const severity = clinicalInterpretation.severity || 'normal';
 
-    clinicalStatusDisplay.innerHTML = `
-        <div class="risk-assessment-header">
-            <div class="risk-badge ${severity}">
-                ${getRiskIcon(severity)} ${clinicalInterpretation.risk_level}
-            </div>
-        </div>
-        <div class="status-badge ${severity}">
-            <strong>${clinicalInterpretation.status}</strong><br>
-            <span>${clinicalInterpretation.range}</span>
-        </div>
-        <p class="interpretation-text">${clinicalInterpretation.interpretation}</p>
-        <div class="risk-guidelines">
-            <h5>📋 Clinical Guidelines</h5>
-            ${getRiskGuidelines(severity)}
-        </div>
-    `;
+        if (mode === 'dengue') {
+            clinicalStatusDisplay.innerHTML = `
+                <div class="risk-assessment-header">
+                    <div class="risk-badge ${severity}">
+                        ${getRiskIcon(severity)} ${clinicalInterpretation.risk_level}
+                    </div>
+                </div>
+                <div class="status-badge ${severity}">
+                    <strong>${clinicalInterpretation.status}</strong><br>
+                    <span>${clinicalInterpretation.range}</span>
+                </div>
+                <p class="interpretation-text">${clinicalInterpretation.interpretation}</p>
+                <div class="risk-guidelines">
+                    <h5>📋 Clinical Guidelines</h5>
+                    ${getRiskGuidelines(severity)}
+                </div>
+            `;
+        } else {
+            // Malaria interpretation
+            clinicalStatusDisplay.innerHTML = `
+                <div class="risk-assessment-header">
+                    <div class="risk-badge ${severity}">
+                        ${getMalariaIcon(severity)} ${clinicalInterpretation.risk_level || clinicalInterpretation.status}
+                    </div>
+                </div>
+                <div class="status-badge ${severity}">
+                    <strong>${clinicalInterpretation.status}</strong>
+                </div>
+                ${clinicalInterpretation.parasite_breakdown ? `
+                    <div class="parasite-breakdown">
+                        <h5>Parasites Detected:</h5>
+                        <ul>
+                            ${Object.entries(clinicalInterpretation.parasite_breakdown)
+                        .map(([name, count]) => `<li>${name}: <strong>${count}</strong></li>`)
+                        .join('')}
+                        </ul>
+                        <p class="total-parasites">Total: <strong>${clinicalInterpretation.total_parasites}</strong> parasites</p>
+                    </div>
+                ` : ''}
+                <p class="interpretation-text">${clinicalInterpretation.interpretation}</p>
+                <p class="malaria-recommendation"><strong>Recommendation:</strong> ${clinicalInterpretation.recommendation}</p>
+                ${clinicalInterpretation.guidelines ? `
+                    <div class="risk-guidelines">
+                        <h5>📋 Clinical Guidelines</h5>
+                        <ul>
+                            ${clinicalInterpretation.guidelines.map(g => `<li>${g}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+        }
+    }
+}
+
+function getTableHeaders(sampleCounts, mode) {
+    return Object.keys(sampleCounts)
+        .filter(key => key !== 'Difficult')
+        .map(key => `<th>${key}</th>`)
+        .join('');
 }
 
 function getRiskIcon(severity) {

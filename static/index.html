@@ -41,54 +41,27 @@
                 </select>
             </div>
 
-            <!-- Single Image Detection Mode -->
-            <div id="single-image-section">
-                <!-- Malaria Image Requirement Notice (shown via JS) -->
-                <div id="malaria-disclaimer" class="clinical-disclaimer hidden">
-                    <div class="disclaimer-icon">🔬</div>
-                    <div class="disclaimer-content">
-                        <strong>Image Requirements for Accurate Results</strong>
-                        <p>For accurate malaria detection, upload blood smear images captured at <strong>100x oil
-                                immersion</strong> (1000x total magnification). This is the standard WHO/CDC protocol
-                            for malaria parasitemia assessment.</p>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="image-input">Upload Microscopy Image:</label>
-                    <input type="file" id="image-input" accept="image/*" class="file-input">
-                    <small class="help-text">JPEG, PNG, or BMP format</small>
-                </div>
-                <button id="detect-btn" class="detect-btn" disabled>Analyze Image</button>
-            </div>
-
-            <!-- Batch Aggregation Mode (for Platelet) -->
-            <div id="aggregation-section" style="display: none;">
+            <!-- Unified Image Upload Section -->
+            <div id="upload-section" class="hidden">
                 <!-- Clinical Requirement Notice -->
-                <div class="clinical-disclaimer">
+                <div id="clinical-disclaimer" class="clinical-disclaimer">
                     <div class="disclaimer-icon">🔬</div>
                     <div class="disclaimer-content">
                         <strong>Image Requirements for Accurate Results</strong>
-                        <p>Images must be captured at <strong>100x oil immersion</strong> (1000x total magnification)
-                            for accurate platelet estimation. This is the standard clinical protocol used in
-                            laboratories worldwide. Results are estimates and should be confirmed by laboratory
-                            analysis.</p>
+                        <p id="disclaimer-text">Upload blood smear images captured at <strong>100x oil
+                                immersion</strong> (1000x total magnification) for accurate analysis.</p>
                     </div>
                 </div>
 
-                <div class="info-box">
-                    <div class="info-box-header">Multi-Image Aggregation Protocol</div>
-                    <p>Upload 10-20 images per sample for statistical aggregation. Results are computed using the
-                        clinical conversion factor (×15,000) validated for 100x oil immersion microscopy.</p>
-                </div>
-
                 <div class="form-group">
-                    <label for="batch-images-input">Upload Multiple Images:</label>
-                    <input type="file" id="batch-images-input" accept="image/*" multiple class="file-input">
-                    <small class="help-text">Select 10-20 images from the same sample for statistical analysis</small>
+                    <label for="unified-image-input">Upload Images:</label>
+                    <input type="file" id="unified-image-input" accept="image/*" multiple class="file-input">
+                    <small class="help-text">Select one or more images (JPEG, PNG, BMP). For batch analysis, select
+                        10-20 images for best results.</small>
                 </div>
 
-                <div class="batch-info">
+                <!-- Selected Images Count and Preview -->
+                <div id="images-info" class="batch-info hidden">
                     <p>Selected Images: <span id="images-selected-count" class="count-badge">0</span></p>
                 </div>
 
@@ -96,12 +69,12 @@
                 <div id="selected-images-preview" class="selected-images-preview hidden">
                     <div class="preview-header">
                         <span>Selected Files (click × to remove):</span>
-                        <button id="clear-all-btn" class="clear-all-btn">Clear All</button>
+                        <button type="button" id="clear-all-btn" class="clear-all-btn">Clear All</button>
                     </div>
                     <div id="selected-images-list" class="selected-images-list"></div>
                 </div>
 
-                <button id="start-aggregation-btn" class="detect-btn" disabled>Begin Batch Analysis</button>
+                <button id="analyze-btn" class="detect-btn" disabled>Analyze Images</button>
             </div>
         </div>
 

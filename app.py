@@ -251,11 +251,7 @@ async def start_aggregation(
     Returns:
         JSON with session ID for tracking the aggregation batch
     """
-    if mode != "dengue":
-        raise HTTPException(
-            status_code=400,
-            detail="Aggregation only supported for 'dengue' mode"
-        )
+    # All models now support aggregation
     
     # Validate magnification
     if magnification not in MAGNIFICATION_OPTIONS:
@@ -414,6 +410,9 @@ async def finalize_aggregation(session_id: str = Form(...)):
         aggregation_result["magnification"] = magnification
         aggregation_result["conversion_factor_used"] = conversion_factor
         
+        # Get mode from session
+        mode = session.get("mode", "dengue")
+        
         logger.info(f"Session {session_id} finalized with {magnification} (factor {conversion_factor}): {aggregation_result}")
         
         # Clean up session (optional - keep for 5 min then auto-delete)
@@ -421,11 +420,28 @@ async def finalize_aggregation(session_id: str = Form(...)):
         session["completed"] = True
         session["result"] = aggregation_result
         
+        # Get model-specific interpretation
+        if mode == "dengue":
+            interpretation = get_clinical_interpretation(aggregation_result["platelets_per_ul"])
+        else:
+            # For malaria modes, get malaria interpretation based on average parasite counts
+            # Calculate average counts across all images
+            avg_counts = {}
+            all_images = session["images"]
+            if all_images:
+                for counts in all_images:
+                    for class_name, count in counts.items():
+                        avg_counts[class_name] = avg_counts.get(class_name, 0) + count
+                # Don't divide by num images - we want total parasites for interpretation
+            interpretation = get_malaria_interpretation(avg_counts)
+        
         return {
             "success": True,
             "session_id": session_id,
+            "mode": mode,
             "aggregation": aggregation_result,
-            "clinical_interpretation": get_clinical_interpretation(aggregation_result["platelets_per_ul"])
+            "individual_images": session["images"],  # Return individual image counts
+            "clinical_interpretation": interpretation
         }
     except Exception as e:
         logger.error(f"Error finalizing aggregation: {str(e)}", exc_info=True)
