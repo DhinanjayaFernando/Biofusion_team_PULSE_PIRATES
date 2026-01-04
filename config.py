@@ -82,7 +82,7 @@ MODEL_CONFIGS = {
 
 # Visible models in UI (keep others intact for future use)
 # To enable more models, add them to this list: "malaria", "malaria_multi"
-VISIBLE_MODELS = ["malaria_advanced", "dengue"]
+VISIBLE_MODELS = ["malaria", "malaria_multi", "malaria_advanced", "dengue"]
 
 # Detection settings
 CONFIDENCE_THRESHOLD = 0.3
