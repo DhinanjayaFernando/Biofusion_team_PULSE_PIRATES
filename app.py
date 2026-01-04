@@ -12,7 +12,7 @@ import uuid
 import os
 from typing import List, Dict, Any
 
-from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE, VISIBLE_MODELS
+from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE, VISIBLE_MODELS, MAGNIFICATION_OPTIONS, DEFAULT_MAGNIFICATION
 from models.model_loader import ModelManager
 from models.image_processor import ImageProcessor
 
@@ -230,12 +230,16 @@ async def detect(
 
 
 @app.post("/api/aggregation/start")
-async def start_aggregation(mode: str = Form(...)):
+async def start_aggregation(
+    mode: str = Form(...),
+    magnification: str = Form(DEFAULT_MAGNIFICATION)
+):
     """
     Start a new aggregation session for multi-image batch processing
     
     Args:
         mode: Detection mode - 'platelet' or 'dengue' for batch processing
+        magnification: Microscope magnification used for image capture (affects conversion factor)
     
     Returns:
         JSON with session ID for tracking the aggregation batch
@@ -246,19 +250,30 @@ async def start_aggregation(mode: str = Form(...)):
             detail="Aggregation only supported for 'dengue' mode"
         )
     
+    # Validate magnification
+    if magnification not in MAGNIFICATION_OPTIONS:
+        magnification = DEFAULT_MAGNIFICATION
+    
+    # Get conversion factor for the selected magnification
+    conversion_factor = MAGNIFICATION_OPTIONS[magnification]["conversion_factor"]
+    
     # Create new session
     session_id = str(uuid.uuid4())
     aggregation_sessions[session_id] = {
         "images": [],
         "mode": mode,
+        "magnification": magnification,
+        "conversion_factor": conversion_factor,
         "created_at": None
     }
     
-    logger.info(f"Started aggregation session {session_id} for {mode}")
+    logger.info(f"Started aggregation session {session_id} for {mode} with {magnification} magnification (factor: {conversion_factor})")
     
     return {
         "session_id": session_id,
         "mode": mode,
+        "magnification": magnification,
+        "conversion_factor": conversion_factor,
         "message": "Aggregation session created. Upload images to this session."
     }
 
@@ -359,7 +374,7 @@ async def finalize_aggregation(session_id: str = Form(...)):
         - total_detections: Sum of all platelet detections
         - images_count: Number of images processed
         - avg_platelets_per_image: Average platelets (Σ detections / N)
-        - platelets_per_ul: Clinical conversion (Avg × 15,000)
+        - platelets_per_ul: Clinical conversion (Avg × conversion_factor based on magnification)
     """
     # Validate session exists
     if session_id not in aggregation_sessions:
@@ -377,13 +392,22 @@ async def finalize_aggregation(session_id: str = Form(...)):
             detail="No images in session. Upload at least one image before finalizing."
         )
     
+    # Get the conversion factor from session (set during start_aggregation)
+    conversion_factor = session.get("conversion_factor", 15000)
+    magnification = session.get("magnification", DEFAULT_MAGNIFICATION)
+    
     try:
-        # Perform aggregation
+        # Perform aggregation with the session's conversion factor
         aggregation_result = image_processor.aggregate_platelet_counts(
-            individual_counts=session["images"]
+            individual_counts=session["images"],
+            conversion_factor=conversion_factor
         )
         
-        logger.info(f"Session {session_id} finalized: {aggregation_result}")
+        # Add magnification info to result
+        aggregation_result["magnification"] = magnification
+        aggregation_result["conversion_factor_used"] = conversion_factor
+        
+        logger.info(f"Session {session_id} finalized with {magnification} (factor {conversion_factor}): {aggregation_result}")
         
         # Clean up session (optional - keep for 5 min then auto-delete)
         # For now, just mark as complete

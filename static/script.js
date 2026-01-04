@@ -213,9 +213,11 @@ startAggregationBtn.addEventListener('click', async () => {
         error.classList.add('hidden');
         startAggregationBtn.disabled = true;
 
-        // Create aggregation session
+        // Create aggregation session with magnification
+        const magnificationSelect = document.getElementById('magnification-select');
         const sessionFormData = new FormData();
         sessionFormData.append('mode', modeSelect.value);  // Use selected mode, not hardcoded 'platelet'
+        sessionFormData.append('magnification', magnificationSelect ? magnificationSelect.value : '100x_oil');
         const sessionResponse = await fetch('/api/aggregation/start', {
             method: 'POST',
             body: sessionFormData

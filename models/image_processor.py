@@ -223,7 +223,7 @@ class ImageProcessor:
         
         return annotated_bytes, counts
     
-    def aggregate_platelet_counts(self, individual_counts: list, images_processed: int = None) -> Dict[str, Any]:
+    def aggregate_platelet_counts(self, individual_counts: list, images_processed: int = None, conversion_factor: int = 15000) -> Dict[str, Any]:
         """
         Aggregate platelet detection counts across multiple images per patient/sample
         using clinical protocol: average detections and convert to platelets/µL
@@ -232,6 +232,10 @@ class ImageProcessor:
             individual_counts: List of detection count dictionaries from multiple images
                                Each dict should have 'Platelet' key with count
             images_processed: Number of images processed (if different from list length)
+            conversion_factor: Clinical conversion factor based on magnification
+                               Default 15000 for 100x oil immersion (clinical standard)
+                               Use 20000 for 100x with FN=22 eyepiece
+                               Use 3750 for 40x objective
             
         Returns:
             Dictionary with aggregated results:
@@ -239,7 +243,7 @@ class ImageProcessor:
                 'total_detections': int (sum of all platelet detections),
                 'images_count': int (number of images processed),
                 'avg_platelets_per_image': float (Σ detections / N),
-                'platelets_per_ul': float (Avg × 15,000)
+                'platelets_per_ul': float (Avg × conversion_factor)
             }
         """
         if not individual_counts or len(individual_counts) == 0:
@@ -263,11 +267,11 @@ class ImageProcessor:
         # Calculate average platelets per image
         avg_platelets_per_image = total_detections / n_images if n_images > 0 else 0
         
-        # Convert to platelets/µL using clinical conversion factor
-        platelets_per_ul = avg_platelets_per_image * 15000
+        # Convert to platelets/µL using the provided conversion factor
+        platelets_per_ul = avg_platelets_per_image * conversion_factor
         
         logger.info(f"Platelet Aggregation - Images: {n_images}, Total detections: {total_detections}, "
-                   f"Avg/image: {avg_platelets_per_image:.2f}, Platelets/µL: {platelets_per_ul:,.0f}")
+                   f"Avg/image: {avg_platelets_per_image:.2f}, Factor: {conversion_factor}, Platelets/µL: {platelets_per_ul:,.0f}")
         
         return {
             'total_detections': total_detections,

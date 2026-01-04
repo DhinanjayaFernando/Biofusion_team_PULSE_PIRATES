@@ -84,6 +84,32 @@ MODEL_CONFIGS = {
 # To enable more models, add them to this list: "malaria", "malaria_multi"
 VISIBLE_MODELS = ["malaria", "malaria_multi", "malaria_advanced", "dengue"]
 
+# Magnification settings for platelet count calculation
+# Conversion factor depends on microscope field of view at different magnifications
+# Clinical standard: 100x oil immersion (1000x total) with factor of 15,000
+MAGNIFICATION_OPTIONS = {
+    "100x_oil": {
+        "name": "100x Oil Immersion (Standard)",
+        "description": "1000x total magnification - Clinical standard",
+        "conversion_factor": 15000,
+        "is_default": True
+    },
+    "100x_oil_fn22": {
+        "name": "100x Oil (FN=22 eyepiece)",
+        "description": "1000x with wider field number eyepiece",
+        "conversion_factor": 20000,
+        "is_default": False
+    },
+    "40x": {
+        "name": "40x Objective",
+        "description": "400x total magnification",
+        "conversion_factor": 3750,
+        "is_default": False
+    }
+}
+
+DEFAULT_MAGNIFICATION = "100x_oil"
+
 # Detection settings
 CONFIDENCE_THRESHOLD = 0.3
 MAX_IMAGE_SIZE = 2048  # Maximum image dimension for processing

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blood Smear Analysis System</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -20,7 +22,8 @@
             <div class="disclaimer-icon">!</div>
             <div class="disclaimer-content">
                 <strong>Important Disclaimer</strong>
-                <p>This application is for research and educational purposes only. Results should not be used for medical diagnosis or clinical decisions without professional medical review.</p>
+                <p>This application is for research and educational purposes only. Results should not be used for
+                    medical diagnosis or clinical decisions without professional medical review.</p>
             </div>
         </div>
 
@@ -50,21 +53,34 @@
 
             <!-- Batch Aggregation Mode (for Platelet) -->
             <div id="aggregation-section" style="display: none;">
+                <!-- Clinical Requirement Notice -->
+                <div class="clinical-disclaimer">
+                    <div class="disclaimer-icon">🔬</div>
+                    <div class="disclaimer-content">
+                        <strong>Image Requirements for Accurate Results</strong>
+                        <p>Images must be captured at <strong>100x oil immersion</strong> (1000x total magnification)
+                            for accurate platelet estimation. This is the standard clinical protocol used in
+                            laboratories worldwide. Results are estimates and should be confirmed by laboratory
+                            analysis.</p>
+                    </div>
+                </div>
+
                 <div class="info-box">
                     <div class="info-box-header">Multi-Image Aggregation Protocol</div>
-                    <p>Upload 10-20 images per sample for statistical aggregation and clinical calculation. Results are computed using validated clinical conversion factors.</p>
+                    <p>Upload 10-20 images per sample for statistical aggregation. Results are computed using the
+                        clinical conversion factor (×15,000) validated for 100x oil immersion microscopy.</p>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="batch-images-input">Upload Multiple Images:</label>
                     <input type="file" id="batch-images-input" accept="image/*" multiple class="file-input">
                     <small class="help-text">Select 10-20 images from the same sample for statistical analysis</small>
                 </div>
-                
+
                 <div class="batch-info">
                     <p>Selected Images: <span id="images-selected-count" class="count-badge">0</span></p>
                 </div>
-                
+
                 <button id="start-aggregation-btn" class="detect-btn" disabled>Begin Batch Analysis</button>
             </div>
         </div>
@@ -72,7 +88,7 @@
         <!-- Results Section -->
         <div id="results-section" class="results-section hidden">
             <h2>Analysis Results</h2>
-            
+
             <!-- Single Image Results -->
             <div id="single-results-section" style="display: none;">
                 <div class="images-container">
@@ -96,7 +112,8 @@
             <div id="aggregation-results-section" style="display: none;">
                 <div class="aggregation-progress">
                     <h3>Processing Status</h3>
-                    <p>Images Processed: <span id="current-image-count">0</span> / <span id="total-images-count">0</span></p>
+                    <p>Images Processed: <span id="current-image-count">0</span> / <span
+                            id="total-images-count">0</span></p>
                     <div class="progress-bar">
                         <div id="progress-fill" class="progress-fill"></div>
                     </div>
@@ -149,5 +166,5 @@
 
     <script src="/static/script.js"></script>
 </body>
-</html>
 
+</html>
