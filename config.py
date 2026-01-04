@@ -22,6 +22,7 @@ else:
 MODEL_PATHS = {
     "malaria": os.path.join(base_model_dir, "malaria_best.pt"),
     "malaria_multi": os.path.join(base_model_dir, "malaria_multi_best.pt"),  # Multi-class malaria model
+    "malaria_advanced": os.path.join(base_model_dir, "Malaria_last_best.pt"),  # Advanced multi-class malaria model (larger architecture)
     "dengue": os.path.join(base_model_dir, "platelet_best.pt")  # Attention-based model for dengue analysis
 }
 
@@ -53,8 +54,22 @@ MODEL_CONFIGS = {
         },
         "count_mode": "per_class"  # Count each class separately
     },
+    "malaria_advanced": {
+        "name": "Malaria Advanced Detection",
+        "description": "Advanced YOLOv8 model for malaria detection with improved accuracy (RBC, trophozoite, ring, schizont, gametocyte, leukocyte)",
+        "classes": {
+            0: "Red Blood Cell",
+            1: "Trophozoite",
+            2: "Difficult",
+            3: "Ring",
+            4: "Schizont",
+            5: "Gametocyte",
+            6: "Leukocyte"
+        },
+        "count_mode": "per_class"  # Count each class separately
+    },
     "dengue": {
-        "name": "Dengue Analysis (Attention Visualization)",
+        "name": "Dengue Analysis",
         "description": "Detects blood cells with attention mechanism for dengue risk assessment",
         "classes": {
             0: "WBC",  # White Blood Cell (class 0)
@@ -64,6 +79,10 @@ MODEL_CONFIGS = {
         "count_mode": "per_class"  # Count each class separately (WBC, RBC, Platelet)
     }
 }
+
+# Visible models in UI (keep others intact for future use)
+# To enable more models, add them to this list: "malaria", "malaria_multi"
+VISIBLE_MODELS = ["malaria_advanced", "dengue"]
 
 # Detection settings
 CONFIDENCE_THRESHOLD = 0.3

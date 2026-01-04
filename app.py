@@ -12,7 +12,7 @@ import uuid
 import os
 from typing import List, Dict, Any
 
-from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE
+from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE, VISIBLE_MODELS
 from models.model_loader import ModelManager
 from models.image_processor import ImageProcessor
 
@@ -135,9 +135,14 @@ async def get_available_models():
     
     available_modes = model_manager.get_available_models()
     
-    # Build response with model details
+    # Filter to only show visible models (hide others from UI but keep them functional)
+    visible_available_modes = [mode for mode in available_modes if mode in VISIBLE_MODELS]
+    
+    # Build response with model details (only for visible models)
     models_info = {}
     for model_key in MODEL_CONFIGS.keys():
+        if model_key not in VISIBLE_MODELS:
+            continue  # Skip hidden models
         is_available = model_manager.is_available(model_key)
         config = MODEL_CONFIGS[model_key]
         models_info[model_key] = {
@@ -148,7 +153,7 @@ async def get_available_models():
         }
     
     return {
-        "available_modes": available_modes,
+        "available_modes": visible_available_modes,
         "models": models_info
     }
 

@@ -83,7 +83,7 @@ class ImageProcessor:
         
         Args:
             results: YOLO results object
-            class_mapping: Dictionary mapping class IDs to names
+            class_mapping: Dictionary mapping class IDs to display names
             count_mode: "per_class" to count each class, "total" for total count
             
         Returns:
@@ -96,10 +96,36 @@ class ImageProcessor:
         counts = {}
         
         if count_mode == "per_class":
-            # Count each class separately
-            for class_id, class_name in class_mapping.items():
-                class_detections = detections[detections.cls == class_id]
-                counts[class_name] = len(class_detections)
+            # Get the model's actual class names from results
+            model_names = results[0].names  # Dict like {0: 'red_blood_cell', 1: 'ring', ...}
+            
+            # Create a mapping from model class names to our display names
+            # First, initialize all display names from class_mapping with 0 count
+            for class_id, display_name in class_mapping.items():
+                counts[display_name] = 0
+            
+            # Count detections using the model's class IDs
+            for box in detections:
+                cls_id = int(box.cls[0])
+                if cls_id in model_names:
+                    model_class_name = model_names[cls_id].lower().replace('_', ' ')
+                    # Find matching display name
+                    matched = False
+                    for class_id, display_name in class_mapping.items():
+                        if display_name.lower() == model_class_name:
+                            counts[display_name] += 1
+                            matched = True
+                            break
+                    if not matched:
+                        # Try to match by class ID directly
+                        if cls_id in class_mapping:
+                            counts[class_mapping[cls_id]] += 1
+                        else:
+                            # Use model's name as fallback
+                            fallback_name = model_names[cls_id].replace('_', ' ').title()
+                            if fallback_name not in counts:
+                                counts[fallback_name] = 0
+                            counts[fallback_name] += 1
         elif count_mode == "total":
             # Count total detections
             total = len(detections)

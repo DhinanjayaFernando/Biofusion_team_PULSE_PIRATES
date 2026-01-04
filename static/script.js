@@ -28,14 +28,14 @@ async function checkAvailableModels() {
     try {
         const response = await fetch('/api/models');
         const data = await response.json();
-        
+
         // Update dropdown options based on available models
         const availableModes = data.available_modes || [];
         const modelsInfo = data.models || {};
-        
+
         // Clear all existing options
         modeSelect.innerHTML = '';
-        
+
         // Add available model options
         if (availableModes.length === 0) {
             const option = document.createElement('option');
@@ -53,11 +53,11 @@ async function checkAvailableModels() {
                 }
             });
         }
-        
+
         // Show info if some models are unavailable
         const allModes = Object.keys(modelsInfo);
         const unavailableModes = allModes.filter(mode => !modelsInfo[mode].available);
-        
+
         if (unavailableModes.length > 0) {
             const infoDiv = document.createElement('div');
             infoDiv.className = 'info-message';
@@ -76,13 +76,13 @@ checkAvailableModels();
 // Handle mode selection change
 modeSelect.addEventListener('change', (e) => {
     const selectedMode = e.target.value;
-    
+
     if (selectedMode === 'dengue') {
         // Show aggregation mode for dengue
         singleImageSection.style.display = 'none';
         aggregationSection.style.display = 'block';
-    } else if (selectedMode === 'malaria') {
-        // Show single image mode for malaria
+    } else if (selectedMode === 'malaria' || selectedMode === 'malaria_multi' || selectedMode === 'malaria_advanced') {
+        // Show single image mode for all malaria detection modes
         singleImageSection.style.display = 'block';
         aggregationSection.style.display = 'none';
     } else {
@@ -100,14 +100,14 @@ imageInput.addEventListener('change', (e) => {
     if (file) {
         selectedFile = file;
         detectBtn.disabled = false;
-        
+
         // Preview original image
         const reader = new FileReader();
         reader.onload = (event) => {
             originalImg.src = event.target.result;
         };
         reader.readAsDataURL(file);
-        
+
         // Hide previous results
         resultsSection.classList.add('hidden');
         error.classList.add('hidden');
@@ -151,10 +151,10 @@ detectBtn.addEventListener('click', async () => {
         if (data.success) {
             // Display annotated image
             annotatedImg.src = data.annotated_image;
-            
+
             // Display counts
             displayCounts(data.counts, data.mode);
-            
+
             // Show results
             singleResultsSection.style.display = 'block';
             aggregationResultsSection.style.display = 'none';
@@ -176,10 +176,10 @@ detectBtn.addEventListener('click', async () => {
 batchImagesInput.addEventListener('change', (e) => {
     batchFiles = Array.from(e.target.files);
     imagesSelectedCount.textContent = batchFiles.length;
-    
+
     if (batchFiles.length > 0) {
         startAggregationBtn.disabled = false;
-        
+
         if (batchFiles.length < 10) {
             const warning = document.createElement('small');
             warning.style.color = '#ff9800';
@@ -193,7 +193,7 @@ batchImagesInput.addEventListener('change', (e) => {
     } else {
         startAggregationBtn.disabled = true;
     }
-    
+
     // Hide previous results
     resultsSection.classList.add('hidden');
     error.classList.add('hidden');
@@ -205,14 +205,14 @@ startAggregationBtn.addEventListener('click', async () => {
         showError('Please select at least one image');
         return;
     }
-    
+
     // Start aggregation session
     try {
         loading.classList.remove('hidden');
         resultsSection.classList.add('hidden');
         error.classList.add('hidden');
         startAggregationBtn.disabled = true;
-        
+
         // Create aggregation session
         const sessionFormData = new FormData();
         sessionFormData.append('mode', modeSelect.value);  // Use selected mode, not hardcoded 'platelet'
@@ -220,7 +220,7 @@ startAggregationBtn.addEventListener('click', async () => {
             method: 'POST',
             body: sessionFormData
         });
-        
+
         if (!sessionResponse.ok) {
             try {
                 const errorData = await sessionResponse.json();
@@ -229,41 +229,41 @@ startAggregationBtn.addEventListener('click', async () => {
                 throw new Error(`Failed to start aggregation session (HTTP ${sessionResponse.status})`);
             }
         }
-        
+
         const sessionData = await sessionResponse.json();
         currentAggregationSession = sessionData.session_id;
-        
+
         console.log('Started aggregation session:', currentAggregationSession);
-        
+
         // Upload images one by one
         const totalImages = batchFiles.length;
         let processedImages = 0;
         const batchImagesContainer = document.getElementById('batch-images-container');
         batchImagesContainer.innerHTML = '';  // Clear previous images
-        
+
         singleResultsSection.style.display = 'none';
         aggregationResultsSection.style.display = 'block';
         resultsSection.classList.remove('hidden');
-        
+
         for (let i = 0; i < batchFiles.length; i++) {
             const file = batchFiles[i];
-            
+
             // Update progress
             processedImages = i + 1;
             document.getElementById('current-image-count').textContent = processedImages;
             document.getElementById('total-images-count').textContent = totalImages;
             document.getElementById('progress-fill').style.width = ((processedImages / totalImages) * 100) + '%';
-            
+
             try {
                 const formData = new FormData();
                 formData.append('session_id', currentAggregationSession);
                 formData.append('image', file);
-                
+
                 const uploadResponse = await fetch('/api/aggregation/upload', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 if (!uploadResponse.ok) {
                     try {
                         const errorData = await uploadResponse.json();
@@ -273,10 +273,10 @@ startAggregationBtn.addEventListener('click', async () => {
                     }
                     continue;
                 }
-                
+
                 const uploadData = await uploadResponse.json();
                 console.log(`Processed image ${processedImages}:`, uploadData.counts);
-                
+
                 // Display annotated image
                 if (uploadData.annotated_image) {
                     const imageCard = document.createElement('div');
@@ -286,10 +286,10 @@ startAggregationBtn.addEventListener('click', async () => {
                         <img src="${uploadData.annotated_image}" alt="Annotated image ${processedImages}" class="batch-image">
                         <div class="batch-image-counts">
                             ${Object.entries(uploadData.counts)
-                                .filter(([className]) => className !== 'Difficult')
-                                .map(([className, count]) => 
-                                    `<span>${className}: ${count}</span>`
-                                ).join('')}
+                            .filter(([className]) => className !== 'Difficult')
+                            .map(([className, count]) =>
+                                `<span>${className}: ${count}</span>`
+                            ).join('')}
                         </div>
                     `;
                     batchImagesContainer.appendChild(imageCard);
@@ -298,7 +298,7 @@ startAggregationBtn.addEventListener('click', async () => {
                 console.error(`Error uploading image ${processedImages}:`, err);
             }
         }
-        
+
         // Finalize aggregation
         console.log('Finalizing aggregation...');
         const finalizeFormData = new FormData();
@@ -307,7 +307,7 @@ startAggregationBtn.addEventListener('click', async () => {
             method: 'POST',
             body: finalizeFormData
         });
-        
+
         if (!finalizeResponse.ok) {
             try {
                 const errorData = await finalizeResponse.json();
@@ -316,13 +316,13 @@ startAggregationBtn.addEventListener('click', async () => {
                 throw new Error(`Failed to finalize aggregation (HTTP ${finalizeResponse.status})`);
             }
         }
-        
+
         const finalData = await finalizeResponse.json();
         console.log('Aggregation result:', finalData);
-        
+
         // Display aggregated results
         displayAggregationResults(finalData.aggregation, finalData.clinical_interpretation);
-        
+
     } catch (err) {
         showError(err.message || 'An error occurred during batch processing');
     } finally {
@@ -333,7 +333,7 @@ startAggregationBtn.addEventListener('click', async () => {
 
 function displayCounts(counts, mode) {
     countsDisplay.innerHTML = '';
-    
+
     if (mode === 'malaria') {
         // Malaria model: Display total trophozoite count
         const totalCount = counts.Trophozoite || counts.Total || Object.values(counts)[0] || 0;
@@ -360,7 +360,7 @@ function displayCounts(counts, mode) {
         Object.entries(counts).forEach(([className, count]) => {
             // Skip "Difficult" class in UI display
             if (className === 'Difficult') return;
-            
+
             const card = document.createElement('div');
             card.className = 'count-card';
             card.innerHTML = `
@@ -378,11 +378,11 @@ function displayAggregationResults(aggregation, clinicalInterpretation) {
     document.getElementById('images-processed-count').textContent = aggregation.images_count;
     document.getElementById('avg-platelets-per-image').textContent = aggregation.avg_platelets_per_image.toFixed(2);
     document.getElementById('platelets-per-ul').textContent = Number(aggregation.platelets_per_ul).toLocaleString();
-    
+
     // Update clinical interpretation with risk assessment
     const clinicalStatusDisplay = document.getElementById('clinical-status-display');
     const severity = clinicalInterpretation.severity || 'normal';
-    
+
     clinicalStatusDisplay.innerHTML = `
         <div class="risk-assessment-header">
             <div class="risk-badge ${severity}">
@@ -402,7 +402,7 @@ function displayAggregationResults(aggregation, clinicalInterpretation) {
 }
 
 function getRiskIcon(severity) {
-    switch(severity) {
+    switch (severity) {
         case 'normal': return '✅';
         case 'mild': return '⚠️';
         case 'moderate': return '⚠️⚠️';
@@ -412,7 +412,7 @@ function getRiskIcon(severity) {
 }
 
 function getRiskGuidelines(severity) {
-    switch(severity) {
+    switch (severity) {
         case 'normal':
             return `
                 <ul>
