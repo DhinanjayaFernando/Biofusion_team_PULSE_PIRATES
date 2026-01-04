@@ -12,7 +12,7 @@ import uuid
 import os
 from typing import List, Dict, Any
 
-from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE, VISIBLE_MODELS, MAGNIFICATION_OPTIONS, DEFAULT_MAGNIFICATION
+from config import MODEL_PATHS, MODEL_CONFIGS, CONFIDENCE_THRESHOLD, API_TITLE, VISIBLE_MODELS, MAGNIFICATION_OPTIONS, DEFAULT_MAGNIFICATION, MALARIA_PARASITE_CLASSES, MALARIA_SEVERITY_THRESHOLDS
 from models.model_loader import ModelManager
 from models.image_processor import ImageProcessor
 
@@ -215,13 +215,20 @@ async def detect(
         # Convert annotated image to base64
         annotated_img_base64 = base64.b64encode(annotated_img_bytes.read()).decode('utf-8')
         
-        return JSONResponse(content={
+        # Build response
+        response_data = {
             "success": True,
             "annotated_image": f"data:image/png;base64,{annotated_img_base64}",
             "counts": counts,
             "mode": mode,
             "model_name": config["name"]
-        })
+        }
+        
+        # Add malaria clinical interpretation for malaria modes
+        if mode in ["malaria", "malaria_multi", "malaria_advanced"]:
+            response_data["malaria_interpretation"] = get_malaria_interpretation(counts)
+        
+        return JSONResponse(content=response_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -472,6 +479,103 @@ def get_clinical_interpretation(platelets_per_ul: float) -> Dict[str, str]:
             "range": "< 20,000 platelets/µL",
             "interpretation": "CRITICAL: High risk for severe bleeding and hemorrhagic shock. Immediate medical intervention required.",
             "severity": "severe"
+        }
+
+
+def get_malaria_interpretation(counts: Dict[str, int]) -> Dict[str, Any]:
+    """
+    Get clinical interpretation for malaria detection based on parasite counts
+    
+    Based on WHO/CDC guidelines:
+    - Positive: Any parasite stage detected (Ring, Trophozoite, Schizont, Gametocyte)
+    - Severity based on total parasite count per image
+    
+    Args:
+        counts: Dictionary with detection counts per class
+    
+    Returns:
+        Dictionary with infection status, severity, and clinical guidelines
+    """
+    # Count only parasite classes (not blood cells)
+    total_parasites = 0
+    parasite_breakdown = {}
+    
+    for class_name in MALARIA_PARASITE_CLASSES:
+        count = counts.get(class_name, 0)
+        if count > 0:
+            parasite_breakdown[class_name] = count
+            total_parasites += count
+    
+    # Determine infection status and severity
+    if total_parasites == 0:
+        return {
+            "status": "Negative",
+            "infected": False,
+            "total_parasites": 0,
+            "parasite_breakdown": {},
+            "severity": "negative",
+            "risk_level": "No Risk",
+            "interpretation": "No malaria parasites detected in this blood smear image.",
+            "recommendation": "A single negative result does not rule out malaria. If symptoms persist, repeat testing every 12-24 hours for 3 sets.",
+            "guidelines": [
+                "No malaria parasites detected in this sample",
+                "If clinical symptoms present, repeat blood smear in 12-24 hours",
+                "Consider other causes of fever"
+            ]
+        }
+    elif total_parasites <= MALARIA_SEVERITY_THRESHOLDS["low"]:
+        return {
+            "status": "Positive - Low Parasitemia",
+            "infected": True,
+            "total_parasites": total_parasites,
+            "parasite_breakdown": parasite_breakdown,
+            "severity": "low",
+            "risk_level": "Low Risk",
+            "interpretation": f"Malaria infection detected with low parasite density ({total_parasites} parasites).",
+            "recommendation": "Prompt antimalarial treatment recommended. Monitor for symptom progression.",
+            "guidelines": [
+                "Begin antimalarial treatment as per local protocol",
+                "Monitor temperature and symptoms every 6 hours",
+                "Ensure adequate hydration",
+                "Follow-up blood smear in 24-48 hours to confirm treatment response"
+            ]
+        }
+    elif total_parasites <= MALARIA_SEVERITY_THRESHOLDS["moderate"]:
+        return {
+            "status": "Positive - Moderate Parasitemia",
+            "infected": True,
+            "total_parasites": total_parasites,
+            "parasite_breakdown": parasite_breakdown,
+            "severity": "moderate",
+            "risk_level": "Medium Risk",
+            "interpretation": f"Malaria infection with moderate parasite density ({total_parasites} parasites). Close monitoring required.",
+            "recommendation": "Immediate antimalarial treatment required. Consider hospitalization for observation.",
+            "guidelines": [
+                "URGENT: Begin antimalarial treatment immediately",
+                "Consider hospital admission for close monitoring",
+                "Monitor for warning signs: confusion, severe anemia, respiratory distress",
+                "Daily blood smear to monitor treatment response",
+                "Ensure IV access if oral intake compromised"
+            ]
+        }
+    else:
+        return {
+            "status": "Positive - High Parasitemia",
+            "infected": True,
+            "total_parasites": total_parasites,
+            "parasite_breakdown": parasite_breakdown,
+            "severity": "high",
+            "risk_level": "High Risk",
+            "interpretation": f"SEVERE malaria infection with high parasite density ({total_parasites} parasites). Immediate medical intervention required.",
+            "recommendation": "CRITICAL: Hospitalize immediately. IV antimalarial therapy required.",
+            "guidelines": [
+                "CRITICAL: Immediate hospitalization required",
+                "Initiate IV artesunate or quinine therapy",
+                "Monitor for severe malaria complications: cerebral malaria, severe anemia, renal failure",
+                "ICU monitoring may be required",
+                "Blood smear every 12 hours until parasitemia clears",
+                "Supportive care: fluids, blood transfusion if needed"
+            ]
         }
 
 

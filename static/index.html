@@ -43,6 +43,17 @@
 
             <!-- Single Image Detection Mode -->
             <div id="single-image-section">
+                <!-- Malaria Image Requirement Notice (shown via JS) -->
+                <div id="malaria-disclaimer" class="clinical-disclaimer hidden">
+                    <div class="disclaimer-icon">🔬</div>
+                    <div class="disclaimer-content">
+                        <strong>Image Requirements for Accurate Results</strong>
+                        <p>For accurate malaria detection, upload blood smear images captured at <strong>100x oil
+                                immersion</strong> (1000x total magnification). This is the standard WHO/CDC protocol
+                            for malaria parasitemia assessment.</p>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="image-input">Upload Microscopy Image:</label>
                     <input type="file" id="image-input" accept="image/*" class="file-input">
@@ -105,6 +116,12 @@
                 <div class="counts-container">
                     <h3>Detection Summary</h3>
                     <div id="counts-display" class="counts-display"></div>
+                </div>
+
+                <!-- Malaria Clinical Assessment (shown for malaria modes) -->
+                <div id="malaria-assessment-section" class="malaria-assessment hidden">
+                    <h3>Infection Assessment</h3>
+                    <div id="malaria-assessment-display"></div>
                 </div>
             </div>
 

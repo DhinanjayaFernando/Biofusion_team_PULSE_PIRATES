@@ -308,8 +308,13 @@ header h1 {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loading p {
@@ -688,9 +693,12 @@ header h1 {
 }
 
 @keyframes pulse-warning {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
     }
+
     50% {
         box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
     }
@@ -752,4 +760,186 @@ header h1 {
     }
 }
 
+/* Malaria Assessment Styles */
+.malaria-assessment {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 10px;
+    border: 1px solid #e8eef7;
+    margin-top: 25px;
+}
 
+.malaria-assessment h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.malaria-result {
+    background: white;
+    padding: 24px;
+    border-radius: 10px;
+    border-left: 4px solid #27ae60;
+    border: 1px solid #ecf0f1;
+}
+
+.malaria-result.negative {
+    border-left: 4px solid #27ae60;
+}
+
+.malaria-result.low {
+    border-left: 4px solid #f39c12;
+}
+
+.malaria-result.moderate {
+    border-left: 4px solid #e67e22;
+}
+
+.malaria-result.high {
+    border-left: 4px solid #e74c3c;
+}
+
+.malaria-badge {
+    display: inline-block;
+    padding: 14px 22px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+}
+
+.malaria-badge.negative {
+    background: #27ae60;
+    color: white;
+}
+
+.malaria-badge.low {
+    background: #f39c12;
+    color: white;
+}
+
+.malaria-badge.moderate {
+    background: #e67e22;
+    color: white;
+}
+
+.malaria-badge.high {
+    background: #e74c3c;
+    color: white;
+    animation: pulse-warning 2s infinite;
+}
+
+.malaria-status-badge {
+    display: inline-block;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    font-weight: 600;
+    line-height: 1.6;
+    border-left: 4px solid;
+}
+
+.malaria-status-badge.negative {
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+    color: #1b5e20;
+    border-left-color: #27ae60;
+}
+
+.malaria-status-badge.low {
+    background: linear-gradient(135deg, #fff8e1 0%, #fff9e1 100%);
+    color: #f57f17;
+    border-left-color: #fbc02d;
+}
+
+.malaria-status-badge.moderate {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #e65100;
+    border-left-color: #ff6f00;
+}
+
+.malaria-status-badge.high {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    color: #b71c1c;
+    border-left-color: #c62828;
+}
+
+.parasite-breakdown {
+    background: #f8f9fa;
+    padding: 18px;
+    border-radius: 8px;
+    margin: 18px 0;
+    border-left: 4px solid #9b59b6;
+}
+
+.parasite-breakdown h5 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    font-weight: 600;
+}
+
+.parasite-breakdown ul {
+    list-style-position: inside;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.parasite-breakdown li {
+    margin-bottom: 6px;
+    font-size: 0.92em;
+}
+
+.total-parasites {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ecf0f1;
+    font-size: 1em;
+    color: #2c3e50;
+}
+
+.malaria-interpretation {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+
+.malaria-recommendation {
+    color: #2c3e50;
+    line-height: 1.6;
+    padding: 12px;
+    background: #fef5e7;
+    border-radius: 6px;
+    border-left: 3px solid #f39c12;
+    margin-bottom: 18px;
+}
+
+.malaria-guidelines {
+    background: white;
+    padding: 18px;
+    border-radius: 8px;
+    margin-top: 18px;
+    border-left: 4px solid #3498db;
+}
+
+.malaria-guidelines h5 {
+    color: #2c3e50;
+    margin-bottom: 14px;
+    font-size: 0.95em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.malaria-guidelines ul {
+    list-style-position: inside;
+    color: #555;
+    line-height: 1.8;
+}
+
+.malaria-guidelines li {
+    margin-bottom: 10px;
+    font-size: 0.92em;
+}

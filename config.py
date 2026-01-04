@@ -110,6 +110,19 @@ MAGNIFICATION_OPTIONS = {
 
 DEFAULT_MAGNIFICATION = "100x_oil"
 
+# Malaria detection settings
+# Classes that indicate malaria infection (parasites only, not blood cells)
+MALARIA_PARASITE_CLASSES = ["Trophozoite", "Ring", "Schizont", "Gametocyte"]
+
+# Malaria severity thresholds based on parasite count per image
+# Based on WHO/CDC guidelines adapted for image-based detection
+MALARIA_SEVERITY_THRESHOLDS = {
+    "negative": 0,      # No parasites detected
+    "low": 10,          # 1-10 parasites - Low parasitemia
+    "moderate": 50,     # 11-50 parasites - Moderate parasitemia
+    "high": float('inf') # >50 parasites - High parasitemia (severe)
+}
+
 # Detection settings
 CONFIDENCE_THRESHOLD = 0.3
 MAX_IMAGE_SIZE = 2048  # Maximum image dimension for processing

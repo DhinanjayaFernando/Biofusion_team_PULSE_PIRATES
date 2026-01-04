@@ -76,19 +76,24 @@ checkAvailableModels();
 // Handle mode selection change
 modeSelect.addEventListener('change', (e) => {
     const selectedMode = e.target.value;
+    const malariaDisclaimer = document.getElementById('malaria-disclaimer');
 
     if (selectedMode === 'dengue') {
         // Show aggregation mode for dengue
         singleImageSection.style.display = 'none';
         aggregationSection.style.display = 'block';
+        if (malariaDisclaimer) malariaDisclaimer.classList.add('hidden');
     } else if (selectedMode === 'malaria' || selectedMode === 'malaria_multi' || selectedMode === 'malaria_advanced') {
         // Show single image mode for all malaria detection modes
         singleImageSection.style.display = 'block';
         aggregationSection.style.display = 'none';
+        // Show malaria disclaimer
+        if (malariaDisclaimer) malariaDisclaimer.classList.remove('hidden');
     } else {
         // No selection
         singleImageSection.style.display = 'block';
         aggregationSection.style.display = 'none';
+        if (malariaDisclaimer) malariaDisclaimer.classList.add('hidden');
     }
 });
 
@@ -154,6 +159,15 @@ detectBtn.addEventListener('click', async () => {
 
             // Display counts
             displayCounts(data.counts, data.mode);
+
+            // Display malaria assessment if present
+            if (data.malaria_interpretation) {
+                displayMalariaAssessment(data.malaria_interpretation);
+            } else {
+                // Hide malaria assessment for non-malaria modes
+                const malariaSection = document.getElementById('malaria-assessment-section');
+                if (malariaSection) malariaSection.classList.add('hidden');
+            }
 
             // Show results
             singleResultsSection.style.display = 'block';
@@ -454,6 +468,71 @@ function getRiskGuidelines(severity) {
             `;
         default:
             return '<p>Unable to determine risk level</p>';
+    }
+}
+
+function displayMalariaAssessment(interpretation) {
+    const malariaSection = document.getElementById('malaria-assessment-section');
+    const malariaDisplay = document.getElementById('malaria-assessment-display');
+
+    if (!malariaSection || !malariaDisplay) return;
+
+    malariaSection.classList.remove('hidden');
+
+    const severity = interpretation.severity || 'negative';
+    const infected = interpretation.infected;
+
+    // Build parasite breakdown HTML if positive
+    let breakdownHtml = '';
+    if (interpretation.parasite_breakdown && Object.keys(interpretation.parasite_breakdown).length > 0) {
+        breakdownHtml = `
+            <div class="parasite-breakdown">
+                <h5>Parasites Detected:</h5>
+                <ul>
+                    ${Object.entries(interpretation.parasite_breakdown)
+                .map(([name, count]) => `<li>${name}: <strong>${count}</strong></li>`)
+                .join('')}
+                </ul>
+                <p class="total-parasites">Total: <strong>${interpretation.total_parasites}</strong> parasites</p>
+            </div>
+        `;
+    }
+
+    // Build guidelines HTML
+    const guidelinesHtml = interpretation.guidelines ? `
+        <div class="malaria-guidelines">
+            <h5>📋 Clinical Guidelines</h5>
+            <ul>
+                ${interpretation.guidelines.map(g => `<li>${g}</li>`).join('')}
+            </ul>
+        </div>
+    ` : '';
+
+    malariaDisplay.innerHTML = `
+        <div class="malaria-result ${severity}">
+            <div class="malaria-status-header">
+                <div class="malaria-badge ${severity}">
+                    ${getMalariaIcon(severity)} ${interpretation.risk_level}
+                </div>
+            </div>
+            <div class="malaria-status-badge ${severity}">
+                <strong>${interpretation.status}</strong>
+            </div>
+            ${breakdownHtml}
+            <p class="malaria-interpretation">${interpretation.interpretation}</p>
+            <p class="malaria-recommendation"><strong>Recommendation:</strong> ${interpretation.recommendation}</p>
+            ${guidelinesHtml}
+        </div>
+    `;
+}
+
+function getMalariaIcon(severity) {
+    switch (severity) {
+        case 'negative': return '✅';
+        case 'low': return '⚠️';
+        case 'moderate': return '⚠️⚠️';
+        case 'high': return '🚨';
+        default: return '❓';
     }
 }
 
